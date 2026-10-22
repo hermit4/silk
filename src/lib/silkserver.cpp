@@ -369,6 +369,7 @@ void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *reque
                             << QStringLiteral("text/html")
                             << QStringLiteral("text/plain")
                             << QStringLiteral("image/svg+xml")
+                            << QStringLiteral("text/javascript")
                             << QStringLiteral("application/javascript")
                             << QStringLiteral("application/x-javascript")
                             << QStringLiteral("application/xml")
