@@ -233,7 +233,7 @@ QNetworkReply *OAuth::Private::request(const QString &method, const QUrl &url, c
             QUrlQuery query;
             QList<QString> keys = requestParams.keys();
             foreach(const QString &key, keys) {
-                QList<QByteArray> vals = requestParams.values(key);
+                const QList<QByteArray> vals { requestParams.value(key) };
                 foreach(const QByteArray &val, vals) {
                     query.addQueryItem(key, QString::fromUtf8(val));
 //                    qurl.addQueryItem(parameterEncoding(key), val.toPercentEncoding());
@@ -419,21 +419,19 @@ QByteArray OAuth::Private::authHeader(const QMultiMap<QString, QByteArray> &para
 {
     QByteArray ret = "OAuth ";
     if (realm.isValid()) {
-        ret += "realm=\"" + realm.toString() + "\",";
+        ret += "realm=\"" + realm.toString().toUtf8() + "\",";
     }
     QMultiMap<QString, QByteArray> map(requestParams);
     map += params;
-    QMapIterator<QString, QByteArray> i(map);
-    while (i.hasNext()) {
-        i.next();
+    for (auto i = map.cbegin(); i != map.cend(); ++i) {
+        if (i != map.cbegin()) {
+            ret += ",";
+        }
         ret += parameterEncoding(i.key());
         ret += "=";
         ret += '"';
         ret += i.value().toPercentEncoding();
         ret += '"';
-        if (i.hasNext()) {
-            ret += ",";
-        }
     }
     return ret;
 }
