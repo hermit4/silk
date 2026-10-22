@@ -32,9 +32,9 @@
 
 #include "silkglobal.h"
 
-class QHttpRequest;
-class QHttpReply;
-class QWebSocket;
+class SilkHttpRequest;
+class SilkHttpReply;
+class SilkWebSocket;
 
 class SILK_EXPORT SilkAbstractMimeHandler : public QObject
 {
@@ -42,12 +42,12 @@ class SILK_EXPORT SilkAbstractMimeHandler : public QObject
 public:
     explicit SilkAbstractMimeHandler(QObject *parent = 0);
     
-    virtual bool load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message = QString()) = 0;
-    virtual bool load(const QUrl &url, QWebSocket *socket, const QString &message = QString()) { Q_UNUSED(url) Q_UNUSED(socket) Q_UNUSED(message) return false; }
+    virtual bool load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString()) = 0;
+    virtual bool load(const QUrl &url, SilkWebSocket *socket, const QString &message = QString()) { Q_UNUSED(url) Q_UNUSED(socket) Q_UNUSED(message) return false; }
 
 signals:
-    void error(int code, QHttpRequest *request, QHttpReply *reply, const QString &errorString = QString());
-    void error(int code, QWebSocket *socket, const QString &errorString = QString());
+    void error(int code, SilkHttpRequest *request, SilkHttpReply *reply, const QString &errorString = QString());
+    void error(int code, SilkWebSocket *socket, const QString &errorString = QString());
 };
 
 #endif // SILKABSTRACTMIMEHANDLER_H

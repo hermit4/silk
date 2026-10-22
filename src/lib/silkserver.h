@@ -29,18 +29,24 @@
 
 #include "silkglobal.h"
 
-#include <QtHttpServer/QHttpServer>
+#include <QtHttpServer/QAbstractHttpServer>
 
-class SILK_EXPORT SilkServer : public QHttpServer
+class SILK_EXPORT SilkServer : public QAbstractHttpServer
 {
     Q_OBJECT
 public:
     explicit SilkServer(QObject *parent = 0);
+    ~SilkServer() override;
 
     QHash<QString, QString> documentRoots() const;
+    bool isListening() const;
 
 public slots:
     void setDocumentRoots(const QHash<QString, QString> &documentRoots);
+
+protected:
+    bool handleRequest(const QHttpServerRequest &request, QHttpServerResponder &responder) override;
+    void missingHandler(const QHttpServerRequest &request, QHttpServerResponder &responder) override;
 
 signals:
     void documentRootsChanged(const QHash<QString, QString> &documentRoots);

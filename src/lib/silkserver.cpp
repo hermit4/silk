@@ -37,10 +37,11 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QUrl>
+#include <QtNetwork/QTcpServer>
+#include <QtHttpServer/QHttpServerRequest>
+#include <QtHttpServer/QHttpServerResponder>
 
-#include <QtHttpServer/QHttpRequest>
-#include <QtHttpServer/QHttpReply>
-#include <QtHttpServer/QWebSocket>
+#include <silkhttp.h>
 
 #include <silkmimehandlerinterface.h>
 #include <silkabstractmimehandler.h>
@@ -56,21 +57,23 @@ class SilkServer::Private : public QObject
 public:
     Private(SilkServer *parent);
 
+    void incomingConnection(SilkHttpRequest *request, SilkHttpReply *reply);
+    bool listening = false;
+
 private slots:
-    void incomingConnection(QHttpRequest *request, QHttpReply *reply);
-    void incomingConnection(QWebSocket *socket);
+    void incomingConnection(SilkWebSocket *socket);
 
 private:
     QString documentRootForRequest(const QUrl &url) const;
-    void load(const QFileInfo &fileInfo, QHttpRequest *request, QHttpReply *reply, const QString &message = QString());
-    void loadFile(const QFileInfo &fileInfo, QHttpRequest *request, QHttpReply *reply);
-    void loadUrl(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message = QString());
-    void load(const QFileInfo &fileInfo, QWebSocket *socket, const QString &message = QString());
-    void loadUrl(const QUrl &url, QWebSocket *socket, const QString &message = QString());
+    void load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
+    void loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply);
+    void loadUrl(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
+    void load(const QFileInfo &fileInfo, SilkWebSocket *socket, const QString &message = QString());
+    void loadUrl(const QUrl &url, SilkWebSocket *socket, const QString &message = QString());
 
 private slots:
-    void error(int statusCode, QHttpRequest *request, QHttpReply *reply, const QString &message = QString());
-    void error(int statusCode, QWebSocket *socket, const QString &message = QString());
+    void error(int statusCode, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
+    void error(int statusCode, SilkWebSocket *socket, const QString &message = QString());
 
 private:
     SilkServer *q;
@@ -100,8 +103,8 @@ SilkServer::Private::Private(SilkServer *parent)
                 SilkMimeHandlerInterface *plugin = qobject_cast<SilkMimeHandlerInterface *>(object);
                 if (plugin) {
                     SilkAbstractMimeHandler *handler = plugin->handler(this);
-                    connect(handler, SIGNAL(error(int,QHttpRequest*,QHttpReply*,QString)), this, SLOT(error(int,QHttpRequest*,QHttpReply*,QString)));
-                    connect(handler, SIGNAL(error(int,QWebSocket*,QString)), this, SLOT(error(int,QWebSocket*,QString)));
+                    connect(handler, SIGNAL(error(int,SilkHttpRequest*,SilkHttpReply*,QString)), this, SLOT(error(int,SilkHttpRequest*,SilkHttpReply*,QString)));
+                    connect(handler, SIGNAL(error(int,SilkWebSocket*,QString)), this, SLOT(error(int,SilkWebSocket*,QString)));
                     foreach (const QString &key, plugin->keys()) {
                         mimeHandlers.insert(key, handler);
                     }
@@ -131,8 +134,8 @@ SilkServer::Private::Private(SilkServer *parent)
                     SilkMimeHandlerInterface *plugin = qobject_cast<SilkMimeHandlerInterface *>(object);
                     if (plugin) {
                         SilkAbstractMimeHandler *handler = plugin->handler(this);
-                        connect(handler, SIGNAL(error(int,QHttpRequest*,QHttpReply*,QString)), this, SLOT(error(int,QHttpRequest*,QHttpReply*,QString)));
-                        connect(handler, SIGNAL(error(int,QWebSocket*,QString)), this, SLOT(error(int,QWebSocket*,QString)));
+                        connect(handler, SIGNAL(error(int,SilkHttpRequest*,SilkHttpReply*,QString)), this, SLOT(error(int,SilkHttpRequest*,SilkHttpReply*,QString)));
+                        connect(handler, SIGNAL(error(int,SilkWebSocket*,QString)), this, SLOT(error(int,SilkWebSocket*,QString)));
                         foreach (const QString &key, plugin->keys()) {
                             mimeHandlers.insert(key, handler);
                         }
@@ -172,9 +175,6 @@ SilkServer::Private::Private(SilkServer *parent)
         }
     }
 #endif // QT_STATIC
-
-    connect(q, SIGNAL(incomingConnection(QHttpRequest *, QHttpReply *)), this, SLOT(incomingConnection(QHttpRequest *, QHttpReply *)));
-    connect(q, SIGNAL(incomingConnection(QWebSocket *)), this, SLOT(incomingConnection(QWebSocket *)));
 
     QString listenAddress = SilkConfig::value("listen.address").toString();
     QHostAddress address;
@@ -217,10 +217,12 @@ SilkServer::Private::Private(SilkServer *parent)
         rewriteRules.append(RewriteRule(QRegularExpression(key), value));
     }
 
-    if (q->listen(address, port)) {
+    QTcpServer *tcpServer = new QTcpServer(q);
+    if (tcpServer->listen(address, port) && q->bind(tcpServer)) {
+        listening = true;
         ssInfo() << "silk is running on" << port;
     } else {
-        ssWarning() << q->errorString();
+        ssWarning() << tcpServer->errorString();
         QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
     }
 }
@@ -237,7 +239,7 @@ QString SilkServer::Private::documentRootForRequest(const QUrl &url) const
     return documentRoots.value(matched);
 }
 
-void SilkServer::Private::incomingConnection(QHttpRequest *request, QHttpReply *reply)
+void SilkServer::Private::incomingConnection(SilkHttpRequest *request, SilkHttpReply *reply)
 {
     ssRequest() << request;
 
@@ -294,7 +296,7 @@ void SilkServer::Private::incomingConnection(QHttpRequest *request, QHttpReply *
     ssOk() << request << reply->size();
 }
 
-void SilkServer::Private::incomingConnection(QWebSocket *socket)
+void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
 {
     ssRequest() << socket;
 
@@ -342,7 +344,7 @@ void SilkServer::Private::incomingConnection(QWebSocket *socket)
     ssOk() << socket;
 }
 
-void SilkServer::Private::load(const QFileInfo &fileInfo, QHttpRequest *request, QHttpReply *reply, const QString &message)
+void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
     QStringList mimeTypeListNeedCharset;
     mimeTypeListNeedCharset << QStringLiteral("text/x-qml")
@@ -383,7 +385,7 @@ void SilkServer::Private::load(const QFileInfo &fileInfo, QHttpRequest *request,
     }
 }
 
-void SilkServer::Private::loadFile(const QFileInfo &fileInfo, QHttpRequest *request, QHttpReply *reply)
+void SilkServer::Private::loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply)
 {
     if (fileInfo.fileName().startsWith(".")) {
         error(403, request, reply, request->url().toString());
@@ -407,7 +409,7 @@ void SilkServer::Private::loadFile(const QFileInfo &fileInfo, QHttpRequest *requ
     }
 }
 
-void SilkServer::Private::loadUrl(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message)
+void SilkServer::Private::loadUrl(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
     bool ret = false;
     if (protocolHandlers.contains(url.scheme())) {
@@ -418,7 +420,7 @@ void SilkServer::Private::loadUrl(const QUrl &url, QHttpRequest *request, QHttpR
     }
 }
 
-void SilkServer::Private::error(int statusCode, QHttpRequest *request, QHttpReply *reply, const QString &message)
+void SilkServer::Private::error(int statusCode, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
     ssError() << request << statusCode << message;
     QString documentRoot = documentRootForRequest(request->url());
@@ -429,7 +431,7 @@ void SilkServer::Private::error(int statusCode, QHttpRequest *request, QHttpRepl
     }
 }
 
-void SilkServer::Private::load(const QFileInfo &fileInfo, QWebSocket *socket, const QString &message)
+void SilkServer::Private::load(const QFileInfo &fileInfo, SilkWebSocket *socket, const QString &message)
 {
     QMimeType mimeType = mimeDatabase.mimeTypeForFile(fileInfo.fileName(), QMimeDatabase::MatchExtension);
     QString mime = mimeType.name();
@@ -449,7 +451,7 @@ void SilkServer::Private::load(const QFileInfo &fileInfo, QWebSocket *socket, co
     }
 }
 
-void SilkServer::Private::loadUrl(const QUrl &url, QWebSocket *socket, const QString &message)
+void SilkServer::Private::loadUrl(const QUrl &url, SilkWebSocket *socket, const QString &message)
 {
     bool ret = false;
     if (protocolHandlers.contains(url.scheme())) {
@@ -460,7 +462,7 @@ void SilkServer::Private::loadUrl(const QUrl &url, QWebSocket *socket, const QSt
     }
 }
 
-void SilkServer::Private::error(int statusCode, QWebSocket *socket, const QString &message)
+void SilkServer::Private::error(int statusCode, SilkWebSocket *socket, const QString &message)
 {
     ssError() << socket << statusCode << message;
 
@@ -470,9 +472,37 @@ void SilkServer::Private::error(int statusCode, QWebSocket *socket, const QStrin
 }
 
 SilkServer::SilkServer(QObject *parent)
-    : QHttpServer(parent)
+    : QAbstractHttpServer(parent)
     , d(new Private(this))
 {
+}
+
+SilkServer::~SilkServer()
+{
+    // replies still pending hold responders whose connections are also children of this
+    // object and are destroyed first otherwise
+    qDeleteAll(findChildren<SilkHttpReply *>(Qt::FindDirectChildrenOnly));
+}
+
+bool SilkServer::isListening() const
+{
+    return d->listening;
+}
+
+bool SilkServer::handleRequest(const QHttpServerRequest &request, QHttpServerResponder &responder)
+{
+    // the reply keeps the responder, so that it can be sent later (http.loading)
+    SilkHttpReply *reply = new SilkHttpReply(request, std::move(responder), this);
+    SilkHttpRequest *silkRequest = new SilkHttpRequest(request, reply);
+    d->incomingConnection(silkRequest, reply);
+    return true;
+}
+
+void SilkServer::missingHandler(const QHttpServerRequest &request, QHttpServerResponder &responder)
+{
+    // not reached: handleRequest() handles every request
+    Q_UNUSED(request)
+    responder.write(QHttpServerResponder::StatusCode::NotFound);
 }
 
 QHash<QString, QString> SilkServer::documentRoots() const

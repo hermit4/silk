@@ -28,7 +28,7 @@
 #define WEBSOCKETOBJECT_H
 
 #include <silkabstractobject.h>
-#include <qwebsocket.h>
+#include <silkhttp.h>
 
 class WebSocketObject : public SilkAbstractObject
 {
@@ -56,7 +56,7 @@ class WebSocketObject : public SilkAbstractObject
 public:
     explicit WebSocketObject(QObject *parent = 0);
 
-    void setWebSocket(QWebSocket *socket);
+    void setWebSocket(SilkWebSocket *socket);
 public slots:
     void accept(const QByteArray &protocol = QByteArray());
     void close();
@@ -79,7 +79,7 @@ private slots:
     void onmessage(const QByteArray &msg);
 
 private:
-    QWebSocket *m_socket;
+    SilkWebSocket *m_socket;
 };
 
 #endif // WEBSOCKETOBJECT_H

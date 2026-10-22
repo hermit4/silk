@@ -36,7 +36,7 @@ class HttpHandler : public SilkAbstractProtocolHandler
 public:
     explicit HttpHandler(QObject *parent = 0);
     
-    virtual bool load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message = QString());
+    virtual bool load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
 
 private:
     class Private;

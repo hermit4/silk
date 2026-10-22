@@ -34,8 +34,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkCookie>
 
-#include <QtHttpServer/QHttpRequest>
-#include <QtHttpServer/QHttpReply>
+#include <silkhttp.h>
 
 class HttpHandler::Private : public QObject
 {
@@ -43,7 +42,7 @@ class HttpHandler::Private : public QObject
 public:
     Private(HttpHandler *parent);
 
-    void load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message);
+    void load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message);
 
 private slots:
     void finished();
@@ -52,8 +51,8 @@ private slots:
 
 private:
     HttpHandler *q;
-    QMap<QObject *, QHttpRequest*> requestMap;
-    QMap<QObject *, QHttpReply*> replyMap;
+    QMap<QObject *, SilkHttpRequest*> requestMap;
+    QMap<QObject *, SilkHttpReply*> replyMap;
     QMap<QObject *, QNetworkReply*> replyMap2;
     static QNetworkAccessManager *networkAccessManager;
 };
@@ -66,7 +65,7 @@ HttpHandler::Private::Private(HttpHandler *parent)
 {
 }
 
-void HttpHandler::Private::load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message)
+void HttpHandler::Private::load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
 //    qDebug() << url;
     Q_UNUSED(message)
@@ -103,8 +102,8 @@ void HttpHandler::Private::finished()
 {
     QNetworkReply *rep = qobject_cast<QNetworkReply *>(sender());
 //    qDebug() << Q_FUNC_INFO << __LINE__ << rep->url();
-    /*QHttpRequest *request = */requestMap.take(rep);
-    QHttpReply *reply = replyMap.take(rep);
+    /*SilkHttpRequest *request = */requestMap.take(rep);
+    SilkHttpReply *reply = replyMap.take(rep);
     replyMap2.take(reply);
     foreach (const QByteArray &headerName, rep->rawHeaderList()) {
         reply->setRawHeader(headerName, rep->rawHeader(headerName));
@@ -126,8 +125,8 @@ void HttpHandler::Private::error(QNetworkReply::NetworkError error)
     Q_UNUSED(error)
     QNetworkReply *rep = qobject_cast<QNetworkReply *>(sender());
 //    qDebug() << Q_FUNC_INFO << __LINE__ << rep->url() << error;
-    QHttpRequest *request = requestMap.value(rep);
-    QHttpReply *reply = replyMap.value(rep);
+    SilkHttpRequest *request = requestMap.value(rep);
+    SilkHttpReply *reply = replyMap.value(rep);
     emit q->error(403, request, reply, rep->errorString());
 //    qDebug() << Q_FUNC_INFO << __LINE__;
 }
@@ -148,7 +147,7 @@ HttpHandler::HttpHandler(QObject *parent)
 {
 }
 
-bool HttpHandler::load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message)
+bool HttpHandler::load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
     d->load(url, request, reply, message);
     return true;

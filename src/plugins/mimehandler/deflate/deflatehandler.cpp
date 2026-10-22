@@ -28,18 +28,19 @@
 
 #include <QtCore/QDebug>
 
-#include <QtHttpServer/QHttpReply>
+#include <silkhttp.h>
+
 
 DeflateHandler::DeflateHandler(QObject *parent)
     : SilkAbstractMimeHandler(parent)
 {
 }
 
-bool DeflateHandler::load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message)
+bool DeflateHandler::load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
     Q_UNUSED(url)
     Q_UNUSED(request)
     Q_UNUSED(message)
-    reply->setRawHeader("Content-Encoding", "none");
+    reply->setCompressionEnabled(false);
     return false;
 }

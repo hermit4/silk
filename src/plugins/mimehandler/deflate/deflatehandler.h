@@ -36,7 +36,7 @@ class DeflateHandler : public SilkAbstractMimeHandler
 public:
     explicit DeflateHandler(QObject *parent = 0);
     
-    virtual bool load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message = QString());
+    virtual bool load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
 };
 
 #endif // DEFLATEHANDLER_H

@@ -39,9 +39,7 @@
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlExtensionPlugin>
 
-#include <QtHttpServer/QHttpRequest>
-#include <QtHttpServer/QHttpReply>
-#include <QtHttpServer/QWebSocket>
+#include <silkhttp.h>
 
 #include <silkconfig.h>
 #include <silkimportsinterface.h>
@@ -57,11 +55,11 @@ class QmlHandler::Private : public QObject
 public:
     Private(QmlHandler *parent);
 
-    void load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message);
-    void load(const QUrl &url, QWebSocket *socket, const QString &message);
+    void load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message);
+    void load(const QUrl &url, SilkWebSocket *socket, const QString &message);
 private:
-    void exec(QQmlComponent *component, QHttpRequest *request, QHttpReply *reply, const QString &message = QString());
-    void exec(QQmlComponent *component, QWebSocket *socket, const QString &message = QString());
+    void exec(QQmlComponent *component, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
+    void exec(QQmlComponent *component, SilkWebSocket *socket, const QString &message = QString());
     void close(SilkAbstractHttpObject *http);
 
 private slots:
@@ -76,13 +74,13 @@ private:
     QmlHandler *q;
     QQmlEngine engine;
     QMap<QObject*, QString> component2root;
-    QMap<QObject*, QHttpRequest*> component2request;
-    QMap<QObject*, QHttpReply*> component2reply;
-    QMap<QObject*, QWebSocket*> component2socket;
+    QMap<QObject*, SilkHttpRequest*> component2request;
+    QMap<QObject*, SilkHttpReply*> component2reply;
+    QMap<QObject*, SilkWebSocket*> component2socket;
     QMap<QObject*, QString> component2message;
     QMap<QObject*, QObject*> component2object;
-    QMap<QObject*, QHttpRequest*> object2request;
-    QMap<QObject*, QHttpReply*> object2reply;
+    QMap<QObject*, SilkHttpRequest*> object2request;
+    QMap<QObject*, SilkHttpReply*> object2reply;
     QMap<QObject*, QQmlContext*> object2context;
     QMap<QObject*, HttpObject*> object2http;
 };
@@ -94,8 +92,8 @@ QmlHandler::Private::Private(QmlHandler *parent)
     QQmlContext *context = engine.rootContext();
     context->setContextProperty(QStringLiteral("Silk"), new Silk(&engine));
 
-    connect(q, SIGNAL(error(int,QHttpRequest*,QHttpReply*, QString)), this, SLOT(onError()));
-    connect(q, SIGNAL(error(int,QWebSocket*, QString)), this, SLOT(onError()));
+    connect(q, SIGNAL(error(int,SilkHttpRequest*,SilkHttpReply*, QString)), this, SLOT(onError()));
+    connect(q, SIGNAL(error(int,SilkWebSocket*, QString)), this, SLOT(onError()));
 
     qmlRegisterAnonymousType<SilkAbstractHttpObject>("Silk.HTTP", 1);
     qmlRegisterUncreatableType<HttpFileData>("Silk.HTTP", 1, 1, "HttpFileData", QStringLiteral("readonly"));
@@ -205,14 +203,14 @@ void QmlHandler::Private::registerObject(const char *uri, int major, int minor)
     qmlRegisterType<Text>(uri, major, minor, "Text");
 }
 
-void QmlHandler::Private::load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message)
+void QmlHandler::Private::load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
     QQmlComponent *component = new QQmlComponent(&engine, url, reply);
     connect(component, SIGNAL(destroyed(QObject *)), this, SLOT(componentDestroyed(QObject *)), Qt::QueuedConnection);
     exec(component, request, reply, message);
 }
 
-void QmlHandler::Private::exec(QQmlComponent *component, QHttpRequest *request, QHttpReply *reply, const QString &message)
+void QmlHandler::Private::exec(QQmlComponent *component, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
     switch (component->status()) {
     case QQmlComponent::Null:
@@ -242,7 +240,7 @@ void QmlHandler::Private::exec(QQmlComponent *component, QHttpRequest *request, 
         http->query(query);
         http->data(QString(request->readAll()));
         QList<HttpFileData *> files;
-        foreach (QHttpFileData *file, request->files()) {
+        foreach (SilkHttpFileData *file, request->files()) {
             files.append(new HttpFileData(file, http));
         }
         http->setFiles(files);
@@ -305,8 +303,8 @@ void QmlHandler::Private::exec(QQmlComponent *component, QHttpRequest *request, 
 void QmlHandler::Private::close(SilkAbstractHttpObject *object)
 {
     if (object2request.contains(object) && object2reply.contains(object) && object2context.contains(object) && object2http.contains(object)) {
-        QHttpRequest *request = object2request.take(object);
-        QHttpReply *reply = object2reply.take(object);
+        SilkHttpRequest *request = object2request.take(object);
+        SilkHttpReply *reply = object2reply.take(object);
         QQmlContext *context = object2context.take(object);
         HttpObject *http = object2http.take(object);
 
@@ -412,14 +410,14 @@ void QmlHandler::Private::onError()
     engine.clearComponentCache();
 }
 
-void QmlHandler::Private::load(const QUrl &url, QWebSocket *socket, const QString &message)
+void QmlHandler::Private::load(const QUrl &url, SilkWebSocket *socket, const QString &message)
 {
     QQmlComponent *component = new QQmlComponent(&engine, url, socket);
     connect(component, SIGNAL(destroyed(QObject *)), this, SLOT(componentDestroyed(QObject *)), Qt::QueuedConnection);
     exec(component, socket, message);
 }
 
-void QmlHandler::Private::exec(QQmlComponent *component, QWebSocket *socket, const QString &message)
+void QmlHandler::Private::exec(QQmlComponent *component, SilkWebSocket *socket, const QString &message)
 {
     static bool cache = SilkConfig::value("cache.qml").toBool();
     switch (component->status()) {
@@ -491,7 +489,7 @@ QmlHandler::QmlHandler(QObject *parent)
 {
 }
 
-bool QmlHandler::load(const QUrl &url, QHttpRequest *request, QHttpReply *reply, const QString &message)
+bool QmlHandler::load(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
     QFileInfo fileInfo;
     if (url.scheme() == "qrc") {
@@ -517,7 +515,7 @@ bool QmlHandler::load(const QUrl &url, QHttpRequest *request, QHttpReply *reply,
     return true;
 }
 
-bool QmlHandler::load(const QUrl &url, QWebSocket *socket, const QString &message)
+bool QmlHandler::load(const QUrl &url, SilkWebSocket *socket, const QString &message)
 {
     QFileInfo fileInfo;
     if (url.scheme() == "qrc") {

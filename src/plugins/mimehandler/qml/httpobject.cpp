@@ -29,9 +29,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
-#include <QtHttpServer/QHttpRequest>
+#include <silkhttp.h>
 
-HttpFileData::HttpFileData(QHttpFileData *data, QObject *parent)
+HttpFileData::HttpFileData(SilkHttpFileData *data, QObject *parent)
     : QObject(parent)
 {
     fileName(data->fileName());

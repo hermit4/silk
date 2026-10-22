@@ -1,7 +1,9 @@
 TEMPLATE = lib
 TARGET = silk
 
-QT = httpserver qml
+QT = network httpserver qml
+
+LIBS += -lz
 
 include(../../silklib.pri)
 
@@ -18,6 +20,7 @@ HEADERS += \
     silkabstractprotocolhandler.h \
     silkabstractobject.h \
     silkserver.h \
+    silkhttp.h \
     silkserver_logging.h
 
 SOURCES += \
@@ -27,4 +30,5 @@ SOURCES += \
     silkabstractprotocolhandler.cpp \
     silkabstractobject.cpp \
     silkserver.cpp \
+    silkhttp.cpp \
     silkserver_logging.cpp

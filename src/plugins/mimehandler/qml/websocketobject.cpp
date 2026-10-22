@@ -33,7 +33,7 @@ WebSocketObject::WebSocketObject(QObject *parent)
 {
 }
 
-void WebSocketObject::setWebSocket(QWebSocket *socket)
+void WebSocketObject::setWebSocket(SilkWebSocket *socket)
 {
     m_socket = socket;
     connect(socket, SIGNAL(message(QByteArray)), this, SLOT(onmessage(QByteArray)));

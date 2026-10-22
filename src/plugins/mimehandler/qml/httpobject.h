@@ -32,7 +32,7 @@
 #include <QtCore/QTemporaryFile>
 #include <QtCore/QUrl>
 
-class QHttpFileData;
+class SilkHttpFileData;
 
 class HttpFileData : public QObject
 {
@@ -44,7 +44,7 @@ class HttpFileData : public QObject
     Q_PROPERTY(QString contentType READ contentType NOTIFY contentTypeChanged)
     SILK_ADD_PROPERTY(const QString &, contentType, QString)
 public:
-    HttpFileData(QHttpFileData *data, QObject *parent = 0);
+    HttpFileData(SilkHttpFileData *data, QObject *parent = 0);
 
     Q_INVOKABLE bool save(const QString &fileName);
 
