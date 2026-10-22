@@ -36,7 +36,7 @@ SilkAbstractObject::SilkAbstractObject(QObject *parent)
 
 QQmlListProperty<QObject> SilkAbstractObject::contents()
 {
-    return QQmlListProperty<QObject>(this, m_contents);
+    return QQmlListProperty<QObject>(this, &m_contents);
 }
 
 QList<QObject *> SilkAbstractObject::contentsList() const

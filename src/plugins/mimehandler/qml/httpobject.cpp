@@ -63,7 +63,7 @@ HttpObject::HttpObject(QObject *parent)
 
 QQmlListProperty<HttpFileData> HttpObject::files()
 {
-    return QQmlListProperty<HttpFileData>(this, m_files);
+    return QQmlListProperty<HttpFileData>(this, &m_files);
 }
 
 void HttpObject::setFiles(const QList<HttpFileData *> &files)

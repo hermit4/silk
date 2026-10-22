@@ -136,5 +136,5 @@ QString Repeater::out()
 
 QQmlListProperty<QQmlComponent> Repeater::contents()
 {
-    return QQmlListProperty<QQmlComponent>(this, m_contents);
+    return QQmlListProperty<QQmlComponent>(this, &m_contents);
 }
