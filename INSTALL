@@ -1,7 +1,36 @@
-$ git clone git://git.qtquick.me/silk.git
+Requirements
+------------
+
+- Qt 6.8 or later, with the Qt Qml and Qt HTTP Server modules
+- zlib
+
+Build and run
+-------------
+
+$ git clone https://github.com/qt-users-jp/silk.git
 $ cd silk
-$ git submodule update --init
-$ qt5/bin/qmake
+$ qmake
 $ make
 $ ./bin/silk
 silk is running on 8080
+
+To listen on a UNIX domain socket instead of a TCP port (e.g. behind a reverse proxy),
+pass --listen.socket or set it in silkconfig.qml:
+
+$ ./bin/silk --listen.socket /run/silk/silk.sock
+
+    listen: Listen {
+        socket: '/run/silk/silk.sock'
+    }
+
+Changes in Qt 6 that affect silk applications
+---------------------------------------------
+
+- XMLHttpRequest no longer reads local files by default. Run silk with the
+  environment variable QML_XHR_ALLOW_FILE_READ=1 if your QML pages need it.
+- JavaScript files are served as text/javascript instead of application/javascript.
+  Use the new name in the deflate configuration if you listed the old one.
+- Response header names are sent in lower case. HTTP header names are case-insensitive.
+- Injecting signal parameters into handlers, e.g. onMessage: console.log(message),
+  is deprecated and prints a warning. Declare them instead:
+  onMessage: function(message) { console.log(message) }
