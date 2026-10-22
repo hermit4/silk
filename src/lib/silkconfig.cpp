@@ -20,16 +20,19 @@ class SilkServerConfigListen : public QObject
     Q_OBJECT
     Q_PROPERTY(QString address MEMBER address NOTIFY addressChanged)
     Q_PROPERTY(int port MEMBER port NOTIFY portChanged)
+    Q_PROPERTY(QString socket MEMBER socket NOTIFY socketChanged)
 public:
     explicit SilkServerConfigListen(QObject *parent = 0) : QObject(parent), address(QStringLiteral("localhost")), port(8080) {}
 
 signals:
     void addressChanged(const QString &address);
     void portChanged(int port);
+    void socketChanged(const QString &socket);
 
 private:
     QString address;
     int port;
+    QString socket;
 };
 
 class SilkServerConfig : public QObject
@@ -131,6 +134,8 @@ void SilkConfig::initialize(QCoreApplication *app)
     commandLine.addOption(address);
     QCommandLineOption port(QStringLiteral("listen.port"), QStringLiteral("listening port"), QStringLiteral("8080"));
     commandLine.addOption(port);
+    QCommandLineOption socket(QStringLiteral("listen.socket"), QStringLiteral("listening UNIX domain socket (instead of the address and port)"), QStringLiteral("path"));
+    commandLine.addOption(socket);
     commandLine.addHelpOption();
     commandLine.process(*app);
 
@@ -168,6 +173,9 @@ void SilkConfig::initialize(QCoreApplication *app)
     }
     if (commandLine.isSet(QStringLiteral("listen.port"))) {
         listen.insert(QStringLiteral("port"), commandLine.value(QStringLiteral("listen.port")).toInt());
+    }
+    if (commandLine.isSet(QStringLiteral("listen.socket"))) {
+        listen.insert(QStringLiteral("socket"), commandLine.value(QStringLiteral("listen.socket")));
     }
     m_config.insert(QStringLiteral("listen"), listen);
 }

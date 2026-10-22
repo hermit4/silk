@@ -37,6 +37,7 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QUrl>
+#include <QtNetwork/QLocalServer>
 #include <QtNetwork/QTcpServer>
 #include <QtHttpServer/QHttpServerRequest>
 #include <QtHttpServer/QHttpServerResponder>
@@ -176,9 +177,12 @@ SilkServer::Private::Private(SilkServer *parent)
     }
 #endif // QT_STATIC
 
+    QString listenSocket = SilkConfig::value("listen.socket").toString();
     QString listenAddress = SilkConfig::value("listen.address").toString();
     QHostAddress address;
-    if (listenAddress == QStringLiteral("*")) {
+    if (!listenSocket.isEmpty()) {
+        // listen.address and listen.port are not used
+    } else if (listenAddress == QStringLiteral("*")) {
         address = QHostAddress::Any;
     } else if (listenAddress == QStringLiteral("localhost")) {
         address = QHostAddress::LocalHost;
@@ -217,13 +221,26 @@ SilkServer::Private::Private(SilkServer *parent)
         rewriteRules.append(RewriteRule(QRegularExpression(key), value));
     }
 
-    QTcpServer *tcpServer = new QTcpServer(q);
-    if (tcpServer->listen(address, port) && q->bind(tcpServer)) {
-        listening = true;
-        ssInfo() << "silk is running on" << port;
+    if (!listenSocket.isEmpty()) {
+        QLocalServer *localServer = new QLocalServer(q);
+        // a socket file left by a previous run would make listen() fail
+        QLocalServer::removeServer(listenSocket);
+        if (localServer->listen(listenSocket) && q->bind(localServer)) {
+            listening = true;
+            ssInfo() << "silk is running on" << listenSocket;
+        } else {
+            ssWarning() << localServer->errorString();
+            QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+        }
     } else {
-        ssWarning() << tcpServer->errorString();
-        QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+        QTcpServer *tcpServer = new QTcpServer(q);
+        if (tcpServer->listen(address, port) && q->bind(tcpServer)) {
+            listening = true;
+            ssInfo() << "silk is running on" << port;
+        } else {
+            ssWarning() << tcpServer->errorString();
+            QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+        }
     }
 }
 
