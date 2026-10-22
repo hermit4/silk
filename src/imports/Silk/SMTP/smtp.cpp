@@ -126,7 +126,7 @@ void Smtp::Private::send(const QVariantMap &email)
     QSslSocket *socket = new QSslSocket(this);
     connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
-    connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
+    connect(socket, SIGNAL(errorOccurred(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
     QVariantMap e = email;
     e.insert("rcpt", e.value("to"));
     emails.insert(socket, e);

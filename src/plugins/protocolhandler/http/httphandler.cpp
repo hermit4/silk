@@ -94,7 +94,7 @@ void HttpHandler::Private::load(const QUrl &url, QHttpRequest *request, QHttpRep
     requestMap.insert(rep, request);
     replyMap.insert(rep, reply);
     replyMap2.insert(reply, rep);
-    connect(rep, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(error(QNetworkReply::NetworkError)));
+    connect(rep, SIGNAL(errorOccurred(QNetworkReply::NetworkError)), this, SLOT(error(QNetworkReply::NetworkError)));
     connect(rep, SIGNAL(finished()), this, SLOT(finished()));
     connect(reply, SIGNAL(destroyed(QObject*)), this, SLOT(httpReplyDestroyed(QObject*)));
 }

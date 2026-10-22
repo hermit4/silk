@@ -91,7 +91,7 @@ void OAuth::Private::requestToken()
     q->setAuthorizeBy(AuthorizeByHeader);
     QNetworkReply *reply = request(QStringLiteral("POST"), q->m_requestTokenUrl, params, false);
     connect(reply, SIGNAL(finished()), this, SLOT(requestTokenFinished()));
-    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(error(QNetworkReply::NetworkError)));
+    connect(reply, SIGNAL(errorOccurred(QNetworkReply::NetworkError)), this, SLOT(error(QNetworkReply::NetworkError)));
 }
 
 void OAuth::Private::requestTokenFinished()
@@ -111,7 +111,7 @@ void OAuth::Private::accessToken(const QString &verifier)
     q->setAuthorizeBy(AuthorizeByHeader);
     QNetworkReply *reply = request(QStringLiteral("POST"), q->m_accessTokenUrl, params, false);
     connect(reply, SIGNAL(finished()), this, SLOT(accessTokenFinished()));
-    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(error(QNetworkReply::NetworkError)));
+    connect(reply, SIGNAL(errorOccurred(QNetworkReply::NetworkError)), this, SLOT(error(QNetworkReply::NetworkError)));
 }
 
 void OAuth::Private::accessTokenFinished()
