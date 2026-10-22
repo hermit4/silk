@@ -75,11 +75,11 @@ const QVariantHash &SilkConfig::config()
 QVariant SilkConfig::value(const QVariant &v, const QString &key)
 {
     QVariantHash hash;
-    switch (v.type()) {
-    case QVariant::Hash:
+    switch (v.userType()) {
+    case QMetaType::QVariantHash:
         hash = v.toHash();
         break;
-    case QVariant::Map: {
+    case QMetaType::QVariantMap: {
         QMap<QString, QVariant> map = v.toMap();
         foreach (const QString &k, map.keys())
             hash.insert(k, map.value(k));
@@ -152,9 +152,9 @@ void SilkConfig::initialize(QCoreApplication *app)
                     qWarning() << "Expected:" << m_config.value(key);
                     continue;
                 }
-                if (m_config.value(key).type() != override.value(key).type()) {
+                if (m_config.value(key).userType() != override.value(key).userType()) {
                     qWarning() << "Configuration:" << key << "is ignored because of type mismatch.";
-                    qWarning() << "Expected:" << m_config.value(key).type() << "Actual:" << override.value(key).type();
+                    qWarning() << "Expected:" << m_config.value(key).typeName() << "Actual:" << override.value(key).typeName();
                     continue;
                 }
             }

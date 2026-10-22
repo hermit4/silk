@@ -129,8 +129,8 @@ QStringList CssRule::parseAttributes(const CssRule *css) const
         if (key.startsWith("_float")) key = key.mid(1);
         key.replace('_', "-");
 
-        switch (p.type()) {
-        case QVariant::String: {
+        switch (p.userType()) {
+        case QMetaType::QString: {
             QString value = p.read(css).toString();
 
             if (key == QStringLiteral("selector")) {
@@ -139,7 +139,7 @@ QStringList CssRule::parseAttributes(const CssRule *css) const
                 ret.append(QString("%1: %2;").arg(key).arg(value));
             }
             break; }
-        case QVariant::Bool: {
+        case QMetaType::Bool: {
 //            bool value = p.read(this).toBool();
             if (key == QStringLiteral("enabled")) {
 

@@ -46,12 +46,12 @@ QString Repeater::out()
     QVariant model = m_model;
 
     static int qjsType = qRegisterMetaType<QJSValue>();
-    if (model.type() == qjsType) {
+    if (model.userType() == qjsType) {
         model = model.value<QJSValue>().toVariant();
     }
 
-    switch (static_cast<int>(model.type())) {
-    case QVariant::Int: {
+    switch (model.userType()) {
+    case QMetaType::Int: {
         int count = model.toInt();
         for (int i = 0; i < count; i++) {
             QVariantMap model;
@@ -60,30 +60,30 @@ QString Repeater::out()
             list.append(model);
         }
         break; }
-    case QVariant::List: {
+    case QMetaType::QVariantList: {
         QVariantList l = model.toList();
         int i = 0;
         foreach (const QVariant &v, l) {
             QVariantMap model;
-            switch (v.type()) {
-            case QVariant::Map:
+            switch (v.userType()) {
+            case QMetaType::QVariantMap:
                 model = v.toMap();
                 model.insert("index", i++);
                 break;
-            case QVariant::String:
-            case QVariant::Int:
+            case QMetaType::QString:
+            case QMetaType::Int:
                 model.insert("index", i++);
                 model.insert("modelData", v);
                 break;
             default:
-                qDebug() << v.type() << v;
+                qDebug() << v.typeName() << v;
                 break;
             }
             if (!model.isEmpty())
                 list.append(model);
         }
         break; }
-    case QVariant::Map: {
+    case QMetaType::QVariantMap: {
         QVariantMap m = model.toMap();
         int i = 0;
         foreach (const QString &key, m.keys()) {
@@ -110,7 +110,7 @@ QString Repeater::out()
         }
         break; }
     default: {
-        qDebug() << Q_FUNC_INFO << __LINE__ << model.type() << (int)model.type() << model;
+        qDebug() << Q_FUNC_INFO << __LINE__ << model.typeName() << model.userType() << model;
         break; }
     }
 

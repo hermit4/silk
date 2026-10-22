@@ -66,8 +66,8 @@ QString XmlTag::out()
         key.replace(QStringLiteral("__"), QStringLiteral(":"));
         key.replace(QLatin1Char('_'), QLatin1Char('-'));
 
-        switch (p.type()) {
-        case QVariant::String: {
+        switch (p.userType()) {
+        case QMetaType::QString: {
             QString value = p.read(this).toString();
             if (key == QStringLiteral("text")) {
                 text = value;
@@ -77,7 +77,7 @@ QString XmlTag::out()
                 }
             }
             break; }
-        case QVariant::Bool: {
+        case QMetaType::Bool: {
 //            bool value = p.read(this).toBool();
 //            if (key == QStringLiteral("enabled")) {
 

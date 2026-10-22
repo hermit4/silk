@@ -45,12 +45,12 @@ QString Recursive::out()
 //    qDebug() << Q_FUNC_INFO << __LINE__ << m_target << m_child;
     QVariant child = m_child;
     static int qjsType = qRegisterMetaType<QJSValue>();
-    if (child.type() == qjsType) {
+    if (child.userType() == qjsType) {
         child = child.value<QJSValue>().toVariant();
     }
 
 
-    if (m_target && child.type() == QVariant::List) {
+    if (m_target && child.userType() == QMetaType::QVariantList) {
         QObject *object = m_target->create(m_target->creationContext());
         SilkAbstractHttpObject *http = qobject_cast<SilkAbstractHttpObject *>(object);
         if (http) {
@@ -58,8 +58,8 @@ QString Recursive::out()
             ret.append(http->out());
         }
         object->deleteLater();
-    } else {
-        qDebug() << Q_FUNC_INFO << __LINE__ << child.type() << (int)child.type() << child;
+    } else if (child.isValid()) {
+        qDebug() << Q_FUNC_INFO << __LINE__ << child.typeName() << child.userType() << child;
     }
 
 //    qDebug() << Q_FUNC_INFO << __LINE__ << ret;

@@ -104,14 +104,14 @@ void Smtp::Private::send(QSslSocket *socket, const QString &command)
 void Smtp::Private::send(const QVariantMap &email)
 {
     QVariant to = email.value("to");
-    switch (to.type()) {
-    case QVariant::String:
+    switch (to.userType()) {
+    case QMetaType::QString:
         if (!q->validateAddress(to.toString())) {
             emit q->error(email, tr("%1 is not valid.").arg(to.toString()));
             return;
         }
         break;
-    case QVariant::StringList:
+    case QMetaType::QStringList:
         foreach (const QString &t, to.toStringList()) {
             if (!q->validateAddress(t)) {
                 emit q->error(email, tr("%1 is not valid.").arg(t));
