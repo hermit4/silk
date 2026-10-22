@@ -97,7 +97,7 @@ QmlHandler::Private::Private(QmlHandler *parent)
     connect(q, SIGNAL(error(int,QHttpRequest*,QHttpReply*, QString)), this, SLOT(onError()));
     connect(q, SIGNAL(error(int,QWebSocket*, QString)), this, SLOT(onError()));
 
-    qmlRegisterType<SilkAbstractHttpObject>();
+    qmlRegisterAnonymousType<SilkAbstractHttpObject>("Silk.HTTP", 1);
     qmlRegisterUncreatableType<HttpFileData>("Silk.HTTP", 1, 1, "HttpFileData", QStringLiteral("readonly"));
     qmlRegisterType<WebSocketObject>("Silk.WebSocket", 1, 0, "WebSocket");
 
