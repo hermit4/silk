@@ -393,7 +393,7 @@ void SilkServer::Private::loadFile(const QFileInfo &fileInfo, QHttpRequest *requ
         if (file.open(QFile::ReadOnly)) {
             QDateTime lastModified = fileInfo.lastModified();
             if (lastModified.isNull()) {
-                lastModified.setTime_t(0);
+                lastModified.setSecsSinceEpoch(0);
             }
             reply->setRawHeader("Last-Modified", lastModified.toUTC().toString("ddd, d, MMM yyyy hh:mm:ss UTC").toUtf8());
             while (!file.atEnd()) {

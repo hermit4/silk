@@ -152,7 +152,7 @@ QNetworkReply *OAuth::Private::request(const QString &method, const QUrl &url, c
     QDateTime dt = QDateTime::currentDateTimeUtc();
     QString timestamp;
     QString nonce;
-    timestamp.setNum(dt.toTime_t());
+    timestamp.setNum(dt.toSecsSinceEpoch());
     nonce.setNum(dt.toMSecsSinceEpoch());
 
     if (requestParams.isEmpty()) {
@@ -309,7 +309,7 @@ QString OAuth::Private::sign(const QString &method, const QUrl &url, const QVari
     QDateTime dt = QDateTime::currentDateTimeUtc();
     QString timestamp;
     QString nonce;
-    timestamp.setNum(dt.toTime_t());
+    timestamp.setNum(dt.toSecsSinceEpoch());
     nonce.setNum(dt.toMSecsSinceEpoch());
 
     if (requestParams.isEmpty()) {
@@ -352,7 +352,7 @@ QString OAuth::Private::authHeader(const QString &method, const QUrl &url, const
     QDateTime dt = QDateTime::currentDateTimeUtc();
     QString timestamp;
     QString nonce;
-    timestamp.setNum(dt.toTime_t());
+    timestamp.setNum(dt.toSecsSinceEpoch());
     nonce.setNum(dt.toMSecsSinceEpoch());
 
     if (requestParams.isEmpty()) {
