@@ -27,6 +27,7 @@
 #include "smtp.h"
 
 #include <QtCore/QDebug>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QStringList>
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
@@ -553,8 +554,8 @@ void Smtp::send(const QVariantMap &email)
 
 bool Smtp::validateAddress(const QString &address) const
 {
-    static QRegExp reg("^(?:(?:(?:(?:[a-zA-Z0-9_!#\\$\\%&'*+/=?\\^`{}~|\\-]+)(?:\\.(?:[a-zA-Z0-9_!#\\$\\%&'*+/=?\\^`{}~|\\-]+))*)|(?:\"(?:\\\\[^\\r\\n]|[^\\\\\"])*\")))\\@(?:(?:(?:(?:[a-zA-Z0-9_!#\\$\\%&'*+/=?\\^`{}~|\\-]+)(?:\\.(?:[a-zA-Z0-9_!#\\$\\%&'*+/=?\\^`{}~|\\-]+))*)|(?:\\[(?:\\\\\\S|[\\x21-\\x5a\\x5e-\\x7e])*\\])))$");
-    return reg.exactMatch(address);
+    static const QRegularExpression reg(QRegularExpression::anchoredPattern(QStringLiteral("^(?:(?:(?:(?:[a-zA-Z0-9_!#\\$\\%&'*+/=?\\^`{}~|\\-]+)(?:\\.(?:[a-zA-Z0-9_!#\\$\\%&'*+/=?\\^`{}~|\\-]+))*)|(?:\"(?:\\\\[^\\r\\n]|[^\\\\\"])*\")))\\@(?:(?:(?:(?:[a-zA-Z0-9_!#\\$\\%&'*+/=?\\^`{}~|\\-]+)(?:\\.(?:[a-zA-Z0-9_!#\\$\\%&'*+/=?\\^`{}~|\\-]+))*)|(?:\\[(?:\\\\\\S|[\\x21-\\x5a\\x5e-\\x7e])*\\])))$")));
+    return reg.match(address).hasMatch();
 }
 
 #include "smtp.moc"

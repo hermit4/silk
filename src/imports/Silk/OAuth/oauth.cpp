@@ -33,7 +33,7 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QMetaObject>
 #include <QtCore/QMetaProperty>
-#include <QtCore/QRegExp>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QStringList>
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QNetworkAccessManager>
@@ -447,9 +447,9 @@ bool OAuth::Private::updateToken(QNetworkReply* reply)
         qDebug() << "error : " << reply->errorString();
         return false;
     }
-    QRegExp exp("(([^=&?]+)=([^=&?]+))(&([^=&?]+)=([^=&?]+))*");
+    static const QRegularExpression exp(QRegularExpression::anchoredPattern(QStringLiteral("(([^=&?]+)=([^=&?]+))(&([^=&?]+)=([^=&?]+))*")));
     QByteArray result = reply->readAll();
-    if (!exp.exactMatch(result)) {
+    if (!exp.match(QString::fromUtf8(result)).hasMatch()) {
         return false;
     }
     QList<QByteArray> params = result.split('&');
