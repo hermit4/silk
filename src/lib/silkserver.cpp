@@ -37,6 +37,7 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QUrl>
+#include <QtNetwork/QHostAddress>
 #include <QtNetwork/QLocalServer>
 #include <QtNetwork/QTcpServer>
 #include <QtHttpServer/QHttpServerRequest>
@@ -59,6 +60,7 @@ public:
     Private(SilkServer *parent);
 
     void incomingConnection(SilkHttpRequest *request, SilkHttpReply *reply);
+    QString clientAddress(const QHttpServerRequest &request) const;
     bool listening = false;
 
 private slots:
@@ -82,6 +84,7 @@ private:
     QMap<QString, SilkAbstractMimeHandler*> mimeHandlers;
     QMap<QString, SilkAbstractProtocolHandler*> protocolHandlers;
     QList<RewriteRule> rewriteRules;
+    QList<QPair<QHostAddress, int>> trustedProxies;
 public:
     QHash<QString, QString> documentRoots;
 };
@@ -215,6 +218,24 @@ SilkServer::Private::Private(SilkServer *parent)
         }
     }
 
+    // proxy: { 'trusted': ['172.17.0.1', '10.0.0.0/8'] }; loopback peers are always trusted
+    if (SilkConfig::value("proxy").isValid()) {
+        QVariant trusted = SilkConfig::value("proxy.trusted");
+        // a single address may be given as a string
+        if (trusted.userType() == QMetaType::QString)
+            trusted = QVariantList { trusted };
+        else if (trusted.isValid() && !trusted.canConvert<QVariantList>())
+            ssWarning() << "proxy.trusted is not a list:" << trusted;
+        foreach (const QVariant &entry, trusted.toList()) {
+            QPair<QHostAddress, int> subnet = QHostAddress::parseSubnet(entry.toString());
+            if (subnet.first.isNull()) {
+                ssWarning() << "proxy.trusted:" << entry.toString() << "is not an address or a subnet";
+                continue;
+            }
+            trustedProxies.append(subnet);
+        }
+    }
+
     QVariantMap rewrite = SilkConfig::value("rewrite").toMap();
     foreach (const QString &key, rewrite.keys()) {
         QString value = rewrite.value(key).toString();
@@ -279,6 +300,29 @@ static QString directoryLocation(const QUrl &url)
     if (url.hasQuery())
         location += QLatin1Char('?') + url.query(QUrl::FullyEncoded);
     return location;
+}
+
+// X-Forwarded-For can be set by anyone; it is only used when the peer is a trusted reverse
+// proxy, and then only its last entry, which the proxy itself appended. X-Real-IP is not used:
+// a proxy that only appends X-Forwarded-For passes a client's X-Real-IP through.
+// A UNIX domain socket peer is reported as loopback.
+QString SilkServer::Private::clientAddress(const QHttpServerRequest &request) const
+{
+    const QHostAddress peer = request.remoteAddress();
+    bool trusted = peer.isLoopback();
+    // ::ffff:a.b.c.d is the IPv4 peer a.b.c.d
+    bool isV4 = false;
+    const QHostAddress v4(peer.toIPv4Address(&isV4));
+    for (const QPair<QHostAddress, int> &subnet : trustedProxies) {
+        if (peer.isInSubnet(subnet) || (isV4 && v4.isInSubnet(subnet)))
+            trusted = true;
+    }
+    if (!trusted)
+        return peer.toString();
+
+    const QByteArray forwarded = request.value("x-forwarded-for").split(',').last().trimmed();
+    const QHostAddress client(QString::fromLatin1(forwarded));
+    return client.isNull() ? peer.toString() : client.toString();
 }
 
 QString SilkServer::Private::documentRootForRequest(const QUrl &url) const
@@ -563,6 +607,7 @@ bool SilkServer::handleRequest(const QHttpServerRequest &request, QHttpServerRes
     // the reply keeps the responder, so that it can be sent later (http.loading)
     SilkHttpReply *reply = new SilkHttpReply(request, std::move(responder), this);
     SilkHttpRequest *silkRequest = new SilkHttpRequest(request, reply);
+    silkRequest->setRemoteAddress(d->clientAddress(request));
     d->incomingConnection(silkRequest, reply);
     return true;
 }

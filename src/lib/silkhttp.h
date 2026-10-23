@@ -70,7 +70,9 @@ public:
     const QUuid &uuid() const { return m_uuid; }
     const QUrl &url() const { return m_url; }
     const QByteArray &method() const { return m_method; }
+    // the peer address, or the client address forwarded by a trusted proxy
     const QString &remoteAddress() const { return m_remoteAddress; }
+    void setRemoteAddress(const QString &remoteAddress) { m_remoteAddress = remoteAddress; }
     // header names are stored in lower case; Host and Cookie are not included
     bool hasRawHeader(const QByteArray &headerName) const { return m_rawHeaders.contains(headerName.toLower()); }
     QByteArray rawHeader(const QByteArray &headerName) const { return m_rawHeaders.value(headerName.toLower()); }
