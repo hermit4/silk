@@ -205,6 +205,26 @@ void SilkHttpReply::setStatus(int status)
     emit statusChanged(status);
 }
 
+// Headers about the message framing and the connection belong to the responder. Pages and the
+// http protocol handler (which copies the upstream headers) must not send their own.
+static bool isFramingHeader(const QByteArray &name)
+{
+    static const QList<QByteArray> names = {
+        "content-length", "transfer-encoding", "connection", "keep-alive", "te", "trailer", "upgrade"
+    };
+    const QByteArray lower = name.toLower();
+    return names.contains(lower) || lower.startsWith("proxy-");
+}
+
+static bool hasHeader(const QHash<QByteArray, QByteArray> &headers, const QByteArray &name)
+{
+    for (auto it = headers.constBegin(); it != headers.constEnd(); ++it) {
+        if (it.key().compare(name, Qt::CaseInsensitive) == 0)
+            return true;
+    }
+    return false;
+}
+
 static QByteArray compress(const QByteArray &source, bool gzip)
 {
     z_stream z = {};
@@ -239,7 +259,7 @@ void SilkHttpReply::close()
     if (m_head || m_status < 200 || m_status == 204 || m_status == 304)
         m_data.clear();
 
-    if (m_compressionEnabled && !m_data.isEmpty() && !m_rawHeaders.contains("Content-Encoding")) {
+    if (m_compressionEnabled && !m_data.isEmpty() && !hasHeader(m_rawHeaders, "Content-Encoding")) {
         QByteArray encoding;
         if (m_acceptEncodings.contains("gzip"))
             encoding = QByteArrayLiteral("gzip");
@@ -256,8 +276,7 @@ void SilkHttpReply::close()
 
     QHttpHeaders headers;
     for (auto it = m_rawHeaders.constBegin(); it != m_rawHeaders.constEnd(); ++it) {
-        // the responder writes Content-Length itself
-        if (it.key().compare("Content-Length", Qt::CaseInsensitive) == 0)
+        if (isFramingHeader(it.key()))
             continue;
         QByteArray value = it.value();
         headers.append(QAnyStringView(it.key()), QAnyStringView(value.replace('\r', "%0D").replace('\n', "%0A")));
