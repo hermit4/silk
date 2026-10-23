@@ -267,6 +267,20 @@ static bool isInside(const QString &fileName, const QString &documentRoot)
     return file == root || file.startsWith(prefix);
 }
 
+// Location for a directory requested without a trailing slash. Only the path and the query
+// are used: the scheme, host and port the client sees belong to the reverse proxy, and the
+// Host header is set by the client. A leading "//" would make it a protocol-relative URL.
+static QString directoryLocation(const QUrl &url)
+{
+    QString path = url.path(QUrl::FullyEncoded);
+    while (path.startsWith(QLatin1String("//")))
+        path.remove(0, 1);
+    QString location = path + QLatin1Char('/');
+    if (url.hasQuery())
+        location += QLatin1Char('?') + url.query(QUrl::FullyEncoded);
+    return location;
+}
+
 QString SilkServer::Private::documentRootForRequest(const QUrl &url) const
 {
     QString matched;
@@ -328,9 +342,7 @@ void SilkServer::Private::incomingConnection(SilkHttpRequest *request, SilkHttpR
                 fileName = fileName + QStringLiteral("/index.qml");
                 fileInfo = QFileInfo(fileName);
             } else {
-                QUrl url(request->url());
-                url.setPath(url.path() + "/");
-                error(301, request, reply, url.toString());
+                error(301, request, reply, directoryLocation(request->url()));
                 return;
             }
         }
@@ -385,9 +397,7 @@ void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
                 fileName = fileName + QStringLiteral("/index.qml");
                 fileInfo = QFileInfo(fileName);
             } else {
-                QUrl url(socket->url());
-                url.setPath(url.path() + "/");
-                error(301, socket, url.toString());
+                error(301, socket, directoryLocation(socket->url()));
                 return;
             }
         }
