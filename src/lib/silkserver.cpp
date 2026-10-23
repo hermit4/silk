@@ -244,6 +244,29 @@ SilkServer::Private::Private(SilkServer *parent)
     }
 }
 
+// The path is appended to the document root, so it must not climb out of it.
+// QUrl::path() is decoded: %2e%2e and ..%2f are caught here as well.
+static bool isSafePath(const QString &path)
+{
+    if (path.contains(QLatin1Char('\\')) || path.contains(QChar(0)))
+        return false;
+    const QStringList segments = path.split(QLatin1Char('/'));
+    return !segments.contains(QStringLiteral(".")) && !segments.contains(QStringLiteral(".."));
+}
+
+// a second line of defense: the file name must stay inside the document root
+static bool isInside(const QString &fileName, const QString &documentRoot)
+{
+    // no document root matched the path: the file name would be the bare path
+    if (documentRoot.isEmpty())
+        return false;
+    const QString root = QDir::cleanPath(documentRoot);
+    const QString file = QDir::cleanPath(fileName);
+    // cleanPath() keeps the slash of "/"
+    const QString prefix = root.endsWith(QLatin1Char('/')) ? root : root + QLatin1Char('/');
+    return file == root || file.startsWith(prefix);
+}
+
 QString SilkServer::Private::documentRootForRequest(const QUrl &url) const
 {
     QString matched;
@@ -282,6 +305,11 @@ void SilkServer::Private::incomingConnection(SilkHttpRequest *request, SilkHttpR
         }
     }
 
+    if (!isSafePath(request->url().path())) {
+        error(400, request, reply);
+        return;
+    }
+
     QString documentRoot = documentRootForRequest(request->url());
 
     if (documentRoot.indexOf("://") > 0) {
@@ -290,6 +318,10 @@ void SilkServer::Private::incomingConnection(SilkHttpRequest *request, SilkHttpR
         loadUrl(url, request, reply);
     } else {
         QString fileName(documentRoot + request->url().path());
+        if (!isInside(fileName, documentRoot)) {
+            error(400, request, reply);
+            return;
+        }
         QFileInfo fileInfo(fileName);
         if (fileInfo.isDir()) {
             if (request->url().path().endsWith("/")) {
@@ -330,6 +362,11 @@ void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
         }
     }
 
+    if (!isSafePath(socket->url().path())) {
+        error(400, socket);
+        return;
+    }
+
     QString documentRoot = documentRootForRequest(socket->url());
 
     if (documentRoot.indexOf("://") > 0) {
@@ -338,6 +375,10 @@ void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
         loadUrl(url, socket);
     } else {
         QString fileName(documentRoot + socket->url().path());
+        if (!isInside(fileName, documentRoot)) {
+            error(400, socket);
+            return;
+        }
         QFileInfo fileInfo(fileName);
         if (fileInfo.isDir()) {
             if (socket->url().path().endsWith("/")) {

@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/errors">
         <file>301.qml</file>
+        <file>400.qml</file>
         <file>403.qml</file>
         <file>404.qml</file>
         <file>500.qml</file>
