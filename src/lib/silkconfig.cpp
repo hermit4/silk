@@ -21,18 +21,21 @@ class SilkServerConfigListen : public QObject
     Q_PROPERTY(QString address MEMBER address NOTIFY addressChanged)
     Q_PROPERTY(int port MEMBER port NOTIFY portChanged)
     Q_PROPERTY(QString socket MEMBER socket NOTIFY socketChanged)
+    Q_PROPERTY(QString socketAccess MEMBER socketAccess NOTIFY socketAccessChanged)
 public:
-    explicit SilkServerConfigListen(QObject *parent = 0) : QObject(parent), address(QStringLiteral("localhost")), port(8080) {}
+    explicit SilkServerConfigListen(QObject *parent = 0) : QObject(parent), address(QStringLiteral("localhost")), port(8080), socketAccess(QStringLiteral("user")) {}
 
 signals:
     void addressChanged(const QString &address);
     void portChanged(int port);
     void socketChanged(const QString &socket);
+    void socketAccessChanged(const QString &socketAccess);
 
 private:
     QString address;
     int port;
     QString socket;
+    QString socketAccess;
 };
 
 class SilkServerConfig : public QObject
@@ -136,6 +139,8 @@ void SilkConfig::initialize(QCoreApplication *app)
     commandLine.addOption(port);
     QCommandLineOption socket(QStringLiteral("listen.socket"), QStringLiteral("listening UNIX domain socket (instead of the address and port)"), QStringLiteral("path"));
     commandLine.addOption(socket);
+    QCommandLineOption socketAccess(QStringLiteral("listen.socketAccess"), QStringLiteral("who may connect to the UNIX domain socket: user, group or world"), QStringLiteral("access"));
+    commandLine.addOption(socketAccess);
     commandLine.addHelpOption();
     commandLine.process(*app);
 
@@ -176,6 +181,9 @@ void SilkConfig::initialize(QCoreApplication *app)
     }
     if (commandLine.isSet(QStringLiteral("listen.socket"))) {
         listen.insert(QStringLiteral("socket"), commandLine.value(QStringLiteral("listen.socket")));
+    }
+    if (commandLine.isSet(QStringLiteral("listen.socketAccess"))) {
+        listen.insert(QStringLiteral("socketAccess"), commandLine.value(QStringLiteral("listen.socketAccess")));
     }
     m_config.insert(QStringLiteral("listen"), listen);
 }

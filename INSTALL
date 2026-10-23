@@ -21,7 +21,11 @@ $ ./bin/silk --listen.socket /run/silk/silk.sock
 
     listen: Listen {
         socket: '/run/silk/silk.sock'
+        socketAccess: 'group'   // user (default), group or world
     }
+
+Only the owner of the silk process may connect to the socket by default. Use 'group'
+and run the reverse proxy in silk's group, or --listen.socketAccess group.
 
 Behind a reverse proxy
 ----------------------

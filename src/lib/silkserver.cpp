@@ -243,7 +243,22 @@ SilkServer::Private::Private(SilkServer *parent)
     }
 
     if (!listenSocket.isEmpty()) {
+        // the reverse proxy needs write access to the socket file to connect
+        QString access = SilkConfig::value("listen.socketAccess").toString();
+        QLocalServer::SocketOptions options;
+        if (access.isEmpty() || access == QStringLiteral("user")) {
+            options = QLocalServer::UserAccessOption;
+        } else if (access == QStringLiteral("group")) {
+            options = QLocalServer::UserAccessOption | QLocalServer::GroupAccessOption;
+        } else if (access == QStringLiteral("world")) {
+            options = QLocalServer::WorldAccessOption;
+        } else {
+            ssWarning() << "listen.socketAccess:" << access << "is not user, group or world.";
+            QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+            return;
+        }
         QLocalServer *localServer = new QLocalServer(q);
+        localServer->setSocketOptions(options);
         // a socket file left by a previous run would make listen() fail
         QLocalServer::removeServer(listenSocket);
         if (localServer->listen(listenSocket) && q->bind(localServer)) {
