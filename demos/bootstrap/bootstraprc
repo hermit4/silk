@@ -1,7 +1,0 @@
-{
-	"listen": { "address": "*", "port": 8081 }
-	, "contents": { "*": "." }
-	, "silk": { "tasks": [] }
-	, "cache": { "qml": false }
-}
-

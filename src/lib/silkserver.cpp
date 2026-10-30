@@ -707,8 +707,15 @@ void SilkServer::Private::error(int statusCode, SilkHttpRequest *request, SilkHt
     QString documentRoot = documentRootForRequest(request->url());
     if (QFile::exists(QString::fromUtf8("%1/errors/%2.qml").arg(documentRoot).arg(statusCode))) {
         load(QFileInfo(QString::fromUtf8("%1/errors/%2.qml").arg(documentRoot).arg(statusCode)), request, reply, message);
-    } else {
+    } else if (QFile::exists(QString::fromUtf8(":/errors/%2.qml").arg(statusCode))) {
         load(QFileInfo(QString::fromUtf8(":/errors/%2.qml").arg(statusCode)), request, reply, message);
+    } else {
+        // an application without silk's error pages; loading a missing page would end in
+        // another error, over and over
+        reply->setStatus(statusCode);
+        if (statusCode == 301)
+            reply->setRawHeader("Location", message.toUtf8());
+        reply->close();
     }
 }
 
