@@ -127,6 +127,11 @@ QVariant SilkConfig::value(const QString &key)
 
 void SilkConfig::initialize(QCoreApplication *app)
 {
+    // Qt 6 refuses XMLHttpRequest on local files by default. Pages are the server's own code
+    // and read files that way with Qt 5 (e.g. SQL files), so allow it unless it is set to 0
+    if (!qEnvironmentVariableIsSet("QML_XHR_ALLOW_FILE_READ"))
+        qputenv("QML_XHR_ALLOW_FILE_READ", "1");
+
     m_config = readConfigFile(QString("qrc:/%1config.qml").arg(QCoreApplication::instance()->applicationName().toLower()));
     QString fileName = QDir::home().absoluteFilePath(QString(".%1config.qml").arg(QCoreApplication::instance()->applicationName()));
 

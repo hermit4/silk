@@ -100,8 +100,8 @@ The demos are built with silk, but not installed. Run them from the build direct
 Changes in Qt 6 that affect silk applications
 ---------------------------------------------
 
-- XMLHttpRequest no longer reads local files by default. Run silk with the
-  environment variable QML_XHR_ALLOW_FILE_READ=1 if your QML pages need it.
+- Qt 6 refuses XMLHttpRequest on local files by default. silk allows reading them as
+  with Qt 5; set the environment variable QML_XHR_ALLOW_FILE_READ=0 to refuse it.
 - JavaScript files are served as text/javascript instead of application/javascript.
   Use the new name in the deflate configuration if you listed the old one.
 - Response header names are sent in lower case. HTTP header names are case-insensitive.
