@@ -43,26 +43,26 @@ HTML.Html {
         HTML.Meta { name: 'author'; content: '' }
 
         HTML.Comment { text: ' Le styles '}
-        HTML.Link { href: 'http://twitter.github.io/bootstrap/assets/css/bootstrap.css'; rel: 'stylesheet' }
+        HTML.Link { href: 'https://getbootstrap.com/2.3.2/assets/css/bootstrap.css'; rel: 'stylesheet' }
         HTML.Style {
             CSS.Rule {
                 selector: 'body'
                 property string padding_top: '60px'
             }
         }
-        HTML.Link { href: 'http://twitter.github.io/bootstrap/assets/css/bootstrap-responsive.css'; rel: 'stylesheet' }
+        HTML.Link { href: 'https://getbootstrap.com/2.3.2/assets/css/bootstrap-responsive.css'; rel: 'stylesheet' }
 
         HTML.Comment { text: ' Le HTML5 shim, for IE6-8 support of HTML5 elements '}
         HTML.Comment { text: '[if lt IE 9]>
-      <script src="http://twitter.github.io/bootstrap/assets/js/html5shiv.js"></script>
+      <script src="https://getbootstrap.com/2.3.2/assets/js/html5shiv.js"></script>
     <![endif]' }
         HTML.Comment { text: ' Fav and touch icons ' }
 
-        HTML.Link { rel: 'apple-touch-icon-precomposed'; sizes: '144x144'; href: 'http://twitter.github.io/bootstrap/assets/ico/apple-touch-icon-144-precomposed.png' }
-        HTML.Link { rel: 'apple-touch-icon-precomposed'; sizes: '114x114'; href: 'http://twitter.github.io/bootstrap/assets/ico/apple-touch-icon-114-precomposed.png' }
-        HTML.Link { rel: 'apple-touch-icon-precomposed'; sizes: '72x72'; href: 'http://twitter.github.io/bootstrap/assets/ico/apple-touch-icon-72-precomposed.png' }
-        HTML.Link { rel: 'apple-touch-icon-precomposed'; href: 'http://twitter.github.io/bootstrap/assets/ico/apple-touch-icon-57-precomposed.png' }
-        HTML.Link { rel: 'shortcut icon'; href: 'http://twitter.github.io/bootstrap/assets/ico/favicon.png' }
+        HTML.Link { rel: 'apple-touch-icon-precomposed'; sizes: '144x144'; href: 'https://getbootstrap.com/2.3.2/assets/ico/apple-touch-icon-144-precomposed.png' }
+        HTML.Link { rel: 'apple-touch-icon-precomposed'; sizes: '114x114'; href: 'https://getbootstrap.com/2.3.2/assets/ico/apple-touch-icon-114-precomposed.png' }
+        HTML.Link { rel: 'apple-touch-icon-precomposed'; sizes: '72x72'; href: 'https://getbootstrap.com/2.3.2/assets/ico/apple-touch-icon-72-precomposed.png' }
+        HTML.Link { rel: 'apple-touch-icon-precomposed'; href: 'https://getbootstrap.com/2.3.2/assets/ico/apple-touch-icon-57-precomposed.png' }
+        HTML.Link { rel: 'shortcut icon'; href: 'https://getbootstrap.com/2.3.2/assets/ico/favicon.png' }
     }
 
     HTML.Body {
@@ -88,18 +88,18 @@ HTML.Html {
         HTML.Comment { text: ' Le javascript
     ================================================== ' }
         HTML.Comment { text: ' Placed at the end of the document so the pages load faster ' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/jquery.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-transition.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-alert.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-modal.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-dropdown.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-scrollspy.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-tab.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-tooltip.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-popover.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-button.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-collapse.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-carousel.js' }
-        HTML.Script { src: 'http://twitter.github.io/bootstrap/assets/js/bootstrap-typeahead.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/jquery.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-transition.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-alert.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-modal.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-dropdown.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-scrollspy.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-tab.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-tooltip.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-popover.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-button.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-collapse.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-carousel.js' }
+        HTML.Script { src: 'https://getbootstrap.com/2.3.2/assets/js/bootstrap-typeahead.js' }
     }
 }

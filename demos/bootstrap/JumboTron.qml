@@ -41,19 +41,5 @@ HTML.Header {
         Bootstrap.Lead {
             text: root.description
         }
-        HTML.Div {
-            _id: 'carbonads-container'
-            HTML.Div {
-                _class: 'carbonad'
-                HTML.Div {
-                    _id: 'azcarbon'
-                    text: ''
-                }
-                HTML.Script {
-                    type: 'text/javascript'
-                    text: 'var z = document.createElement("script"); z.type = "text/javascript"; z.async = true; z.src = "http://engine.carbonads.com/z/32341/azcarbon_2_1_0_HORIZDARK"; var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(z, s);'
-                }
-            }
-        }
     }
 }
