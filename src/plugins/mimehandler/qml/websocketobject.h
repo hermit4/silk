@@ -30,6 +30,8 @@
 #include <silkabstractobject.h>
 #include <silkhttp.h>
 
+#include <QtCore/QPointer>
+
 class WebSocketObject : public SilkAbstractObject
 {
     Q_OBJECT
@@ -79,7 +81,8 @@ private slots:
     void onmessage(const QByteArray &msg, bool binary);
 
 private:
-    SilkWebSocket *m_socket;
+    // cleared when the connection is gone; this object is deleted later
+    QPointer<SilkWebSocket> m_socket;
 };
 
 #endif // WEBSOCKETOBJECT_H

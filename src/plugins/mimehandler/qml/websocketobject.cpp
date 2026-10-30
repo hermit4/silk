@@ -29,7 +29,6 @@
 WebSocketObject::WebSocketObject(QObject *parent)
     : SilkAbstractObject(parent)
     , m_port(80)
-    , m_socket(0)
 {
 }
 
@@ -42,17 +41,20 @@ void WebSocketObject::setWebSocket(SilkWebSocket *socket)
 
 void WebSocketObject::accept(const QByteArray &protocol)
 {
-    m_socket->accept(protocol);
+    if (m_socket)
+        m_socket->accept(protocol);
 }
 
 void WebSocketObject::close()
 {
-    m_socket->close();
+    if (m_socket)
+        m_socket->close();
 }
 
 void WebSocketObject::send(const QByteArray &data)
 {
-    m_socket->send(data);
+    if (m_socket)
+        m_socket->send(data);
 }
 
 void WebSocketObject::onmessage(const QByteArray &msg, bool binary)
