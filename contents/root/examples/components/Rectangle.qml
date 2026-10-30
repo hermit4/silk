@@ -24,7 +24,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import Silk.HTML 4.01
+import Silk.HTML 4.1
 
 Div {
     property int __width: 200
