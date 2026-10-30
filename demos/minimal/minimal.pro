@@ -1,5 +1,9 @@
 TARGET = minimal
 include(../../silkapp.pri)
+include(../../contents/contents.pri)
+
+# demos are built, not installed
+INSTALLS -= target
 
 SOURCES += main.cpp
 
@@ -7,6 +11,6 @@ RESOURCES += \
     minimal.qrc
 
 OTHER_FILES += \
-    minimalrc \
+    minimalconfig.qml \
     contents/index.qml
 
