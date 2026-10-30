@@ -31,14 +31,14 @@ WebSocket {
     onReady: {
         accept("carpet");
     }
-    onMessage: {
+    onMessage: function(message) {
         client.request(JSON.parse(message.data), client)
     }
 
     Client {
         id: client
         connectionName: 'carpet'
-        onRespond: {
+        onRespond: function(message) {
             console.debug(message);
             send(JSON.stringify(message));
         }

@@ -78,7 +78,7 @@ CarpetTemplate {
     Client {
         id: client
         connectionName: 'carpet'
-        onRespond: {
+        onRespond: function(message) {
 //            console.debug(message.action);
             switch (message.action) {
             case 'enabled':

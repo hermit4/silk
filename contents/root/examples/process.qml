@@ -33,7 +33,7 @@ Html {
         id: date
         program: 'date'
         arguments: ['+%H:%M:%S']
-        onOutput: output.text += line
+        onOutput: function(line) { output.text += line }
         onFinished: {
             http.loading = false
         }

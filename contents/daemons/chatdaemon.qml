@@ -32,7 +32,7 @@ Server {
 
     property var messages: []
 
-    onRequest: {
+    onRequest: function(message, sender) {
         switch (message.action) {
         case 'messages':
             if (sender !== null)

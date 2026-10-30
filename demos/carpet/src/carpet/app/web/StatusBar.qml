@@ -39,7 +39,7 @@ QWidget {
     Client {
         id: client
         connectionName: 'carpet'
-        onRespond: {
+        onRespond: function(message) {
             switch (message.action) {
             case 'jobs':
                 jobs.model = message.data

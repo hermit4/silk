@@ -66,12 +66,12 @@ Html {
         username: config.email.username
         password: config.email.password
         from: config.email.from
-        onSent: {
+        onSent: function(email) {
             msg.text = 'Sent to %1'.arg(email.to);
             form.enabled = false;
             http.loading = false;
         }
-        onError: {
+        onError: function(email, message) {
             msg.text = message;
             http.loading = false;
         }

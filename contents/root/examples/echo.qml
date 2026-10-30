@@ -28,5 +28,5 @@ import Silk.WebSocket 1.0
 
 WebSocket {
     onReady: accept()
-    onMessage: send(message.data);
+    onMessage: function(message) { send(message.data) }
 }

@@ -97,7 +97,7 @@ Html {
 
     Twitter {
         id: twitter
-        onAuthorize: {
+        onAuthorize: function(url) {
             cache.add(twitter.token, twitter.tokenSecret);
             http.status = 301;
             http.responseHeader = {'Content-Type': 'text/plain; charset=utf-8', 'Location': url};

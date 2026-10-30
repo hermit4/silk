@@ -33,7 +33,7 @@ Html {
     Client {
         id: client
         connectionName: 'websocketChatServer'
-        onRespond: messages.model = message.messages;
+        onRespond: function(message) { messages.model = message.messages }
     }
 
     Component.onCompleted: {

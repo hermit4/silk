@@ -149,7 +149,7 @@ Text {
 
 WebSocket {
     onReady: accept()
-    onMessage: send(message.data);
+    onMessage: function(message) { send(message.data) }
 }"
             }
         }

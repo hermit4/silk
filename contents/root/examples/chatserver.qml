@@ -31,14 +31,14 @@ WebSocket {
     onReady: {
         accept("chat");
     }
-    onMessage: {
+    onMessage: function(message) {
         client.request(JSON.parse(message.data))
     }
 
     Client {
         id: client
         connectionName: 'websocketChatServer'
-        onRespond: {
+        onRespond: function(message) {
             var m = {};
             m.user = message.user;
             m.message = message.message;

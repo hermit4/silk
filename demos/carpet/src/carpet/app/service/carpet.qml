@@ -34,7 +34,7 @@ Server {
 
     Backup { id: backup }
 
-    onRequest: {
+    onRequest: function(message, sender) {
 //        console.debug('+ Server::onRequest', message.action)
         switch (message.action) {
         case 'status':
