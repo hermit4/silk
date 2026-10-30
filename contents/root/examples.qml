@@ -281,10 +281,8 @@ SilkPageTemplate {
                         }
                     }
                 }
-                Bootstrap.AlertBlock {
-                    Text { text: 'Install ' }
-                    A { text: "Relational database plugin for QML"; href: 'http://qt5.jp/relational-database-plugin-for-qml.html' }
-                    Text { text: " to use database in silk." }
+                Bootstrap.AlertInfo {
+                    text: 'The example uses <code>QtQuick.LocalStorage</code> of Qt. The database is stored under <code>offlineStoragePath</code> of the configuration.'
                 }
             }
             Section {
