@@ -25,7 +25,6 @@
  */
 
 import Silk.HTML 5.0
-import 'bootstrap' as Bootstrap
 
 SilkPageTemplate {
     Article {
@@ -50,7 +49,7 @@ SilkPageTemplate {
                     }
                     Tr {
                         Td { text: "HTML"; rowspan: "2" }
-                        Td { text: "Silk.HTML 4.01" }
+                        Td { text: "Silk.HTML 4.1" }
                         Td { A { href: "http://www.w3.org/TR/html401/"; text: "HTML 4.01" } }
                     }
                     Tr {
@@ -75,11 +74,6 @@ SilkPageTemplate {
                         Td { text: "JSON" }
                         Td { text: "Silk.JSON 1.0" }
                         Td { A { href: "http://www.ietf.org/rfc/rfc4627.txt"; text: "JSON" } }
-                    }
-                    Tr {
-                        Td { text: "RDB" }
-                        Td { text: "Silk.Database 1.0" }
-                        Td { text: "&nbsp;" }
                     }
                     Tr {
                         Td { text: "SMTP" }
