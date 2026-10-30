@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 {
     QCoreApplication app(argc, argv);
 
-    SilkConfig::initialize(argc, argv);
+    SilkConfig::initialize(&app);
 
     SilkServer server;
     if (!server.isListening()) {

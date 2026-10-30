@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>carpetrc</file>
+        <file>carpetconfig.qml</file>
         <file>app/web/index.qml</file>
         <file>app/web/css.qml</file>
         <file>app/web/index.js</file>

@@ -27,7 +27,6 @@
 #include "entrymodel.h"
 #include "carpetfileinfo.h"
 #include "carpetdb.h"
-#include <silkconfig.h>
 
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
@@ -51,7 +50,7 @@ void EntryModel::update()
 
     QMimeDatabase mimeDatabase;
     QSqlDatabase db = CarpetDB::database();
-    QString from = SilkConfig::value("carpet.from").toString();
+    QString from = CarpetDB::from();
     QDir dir(from + m_path);
     QStringList added;
 
@@ -77,7 +76,7 @@ void EntryModel::update()
             fi.permissions = static_cast<uint>(fileInfo.permissions());
             fi.ownerId = fileInfo.ownerId();
             fi.groupId = fileInfo.groupId();
-            fi.cTime = fileInfo.created();
+            fi.cTime = CarpetDB::created(fileInfo);
             fi.mTime = fileInfo.lastModified();
             fi.aTime = fileInfo.lastRead();
             fi.removed = false;
@@ -96,7 +95,7 @@ void EntryModel::update()
         if (!query.first()) return;
         directoryId = query.value(0).toInt();
     }
-    foreach (const QString &item, m_path.split("/", QString::SkipEmptyParts)) {
+    foreach (const QString &item, m_path.split("/", Qt::SkipEmptyParts)) {
         QSqlQuery query(db);
         query.prepare("SELECT fileId FROM File WHERE directoryID = ? AND fileName = ?");
         query.addBindValue(directoryId);

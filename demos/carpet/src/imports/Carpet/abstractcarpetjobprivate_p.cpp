@@ -26,14 +26,14 @@
 
 #include "abstractcarpetjobprivate_p.h"
 #include <QtCore/QDebug>
-#include "silkconfig.h"
+#include "carpetdb.h"
 
 AbstractCarpetJob::Private::Private(AbstractCarpetJob *parent)
     : QObject(parent)
     , q(parent)
-    , db(QSqlDatabase::database(QLatin1String("carpet")))
-    , backupFrom(SilkConfig::value("carpet.from").toString())
-    , backupTo(SilkConfig::value("carpet.to").toString())
+    , db(CarpetDB::jobDatabase())
+    , backupFrom(CarpetDB::from())
+    , backupTo(CarpetDB::to())
 {
 }
 

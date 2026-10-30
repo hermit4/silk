@@ -1,5 +1,8 @@
 include(../../../../../silkimports.pri)
 
+# demos are built, not installed: silk would load this import too
+INSTALLS -= target
+
 QT += sql
 
 HEADERS += \

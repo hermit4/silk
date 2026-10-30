@@ -30,7 +30,6 @@
 #include <QtCore/QMutexLocker>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
-#include <QtCore/QRegExp>
 
 #include "silkconfig.h"
 

@@ -27,7 +27,10 @@
 #ifndef CARPETDB_H
 #define CARPETDB_H
 
+#include <QtCore/QDateTime>
+#include <QtCore/QFileInfo>
 #include <QtCore/QMutex>
+#include <QtCore/QString>
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
 
@@ -36,7 +39,20 @@ class CarpetDB
 public:
     static QMutex &mutex();
     static QSqlDatabase &database();
+    // the connection for jobs, which run in Backup's thread: Qt 6 does not let a thread use
+    // a connection that another thread opened
+    static QSqlDatabase jobDatabase();
     static bool exec(QSqlQuery &query);
+
+    // carpet.from and carpet.to in the config; the user's home and ~/.carpet without them
+    static QString from();
+    static QString to();
+
+    // what QFileInfo::created() returned in Qt 5: the birth time, or the status change time
+    static QDateTime created(const QFileInfo &fileInfo) {
+        QDateTime ret = fileInfo.birthTime();
+        return ret.isValid() ? ret : fileInfo.metadataChangeTime();
+    }
 
 private:
     CarpetDB() {}

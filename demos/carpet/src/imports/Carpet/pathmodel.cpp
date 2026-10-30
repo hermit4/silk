@@ -28,7 +28,6 @@
 
 #include "carpetfileinfo.h"
 #include "carpetdb.h"
-#include <silkconfig.h>
 
 #include <QtCore/QDebug>
 #include <QtCore/QFileInfo>
@@ -52,7 +51,7 @@ void PathModel::update()
     QMimeDatabase mimeDatabase;
     QSqlDatabase db = CarpetDB::database();
 
-    QStringList items = m_path.split("/", QString::SkipEmptyParts);
+    QStringList items = m_path.split("/", Qt::SkipEmptyParts);
     QString fullPath = "";
     int fileId = -1;
 
@@ -66,7 +65,7 @@ void PathModel::update()
 
     foreach (const QString &item, items) {
         fullPath += "/" + item;
-        QFileInfo fileInfo(SilkConfig::value("carpet.from").toString() + fullPath);
+        QFileInfo fileInfo(CarpetDB::from() + fullPath);
 
         {
             QSqlQuery query(db);
@@ -111,7 +110,7 @@ void PathModel::update()
             fi.permissions = static_cast<uint>(fileInfo.permissions());
             fi.ownerId = fileInfo.ownerId();
             fi.groupId = fileInfo.groupId();
-            fi.cTime = fileInfo.created();
+            fi.cTime = CarpetDB::created(fileInfo);
             fi.mTime = fileInfo.lastModified();
             fi.aTime = fileInfo.lastRead();
             fi.removed = false;

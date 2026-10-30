@@ -25,6 +25,7 @@
  */
 
 #include "backupjob.h"
+#include "carpetdb.h"
 #include "abstractcarpetjobprivate_p.h"
 
 #include <QtCore/QCryptographicHash>
@@ -33,9 +34,8 @@
 #include <QtCore/QDir>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QMutexLocker>
-#include <QtCore/QRegExp>
+#include <QtCore/QRegularExpression>
 
-uint qHash(const QRegExp &regexp) { return qHash(regexp.pattern()); }
 
 struct BackupJobItem {
     QString path;
@@ -66,7 +66,8 @@ private:
 
     int backupId;
     QDateTime since;
-    QHash<QRegExp, bool> excludePatterns;
+    // a pattern and whether it excludes the whole directory that contains a match
+    QList<QPair<QRegularExpression, bool>> excludePatterns;
 
     QList<BackupJobItem> directories;
 };
@@ -114,7 +115,7 @@ void BackupJob::Private::start()
             return;
         }
         while (query.next())
-            excludePatterns.insert(QRegExp(query.value(0).toString(), Qt::CaseSensitive, QRegExp::Wildcard), query.value(1).toBool());
+            excludePatterns.append({ QRegularExpression::fromWildcard(query.value(0).toString(), Qt::CaseSensitive), query.value(1).toBool() });
     }
 
     // add a backup
@@ -201,7 +202,7 @@ void BackupJob::Private::backup()
                 query.addBindValue(directoryId);
                 if (!exec(query)) return;
                 if (query.first()) {
-                    if (static_cast<uint>(fileInfo.permissions()) != query.value(0).toInt()) toBeSaved = true;
+                    if (static_cast<uint>(fileInfo.permissions()) != query.value(0).toUInt()) toBeSaved = true;
                     if (fileInfo.ownerId() != query.value(1).toUInt()) toBeSaved = true;
                     if (fileInfo.groupId() != query.value(2).toUInt()) toBeSaved = true;
                 }
@@ -216,7 +217,7 @@ void BackupJob::Private::backup()
                 query.addBindValue(static_cast<uint>(fileInfo.permissions()));
                 query.addBindValue(fileInfo.ownerId());
                 query.addBindValue(fileInfo.groupId());
-                query.addBindValue(fileInfo.created());
+                query.addBindValue(CarpetDB::created(fileInfo));
                 query.addBindValue(fileInfo.lastModified());
                 query.addBindValue(fileInfo.lastRead());
                 if (!exec(query)) return;
@@ -226,8 +227,8 @@ void BackupJob::Private::backup()
 
     foreach (const QFileInfo &fileInfo, dir.entryInfoList(QDir::AllEntries | QDir::Readable | QDir::NoDotAndDotDot | QDir::Hidden, QDir::Name)) {
         bool skip = false;
-        foreach (const QRegExp &pattern, excludePatterns.keys()) {
-            if (pattern.exactMatch(fileInfo.fileName())) {
+        for (const auto &pattern : std::as_const(excludePatterns)) {
+            if (pattern.first.match(fileInfo.fileName()).hasMatch()) {
                 skip = true;
                 break;
             }
@@ -239,9 +240,9 @@ void BackupJob::Private::backup()
             if (fileInfo.absoluteFilePath() == backupTo) {
                 skip = true;
             } else {
-                foreach (const QRegExp &pattern, excludePatterns.keys()) {
-                    if (excludePatterns.value(pattern)) {
-                        if (QDir(fileInfo.absoluteFilePath()).entryList(QDir::AllEntries | QDir::Readable | QDir::NoDotAndDotDot | QDir::Hidden).indexOf(pattern) > -1) {
+                for (const auto &pattern : std::as_const(excludePatterns)) {
+                    if (pattern.second) {
+                        if (QDir(fileInfo.absoluteFilePath()).entryList(QDir::AllEntries | QDir::Readable | QDir::NoDotAndDotDot | QDir::Hidden).indexOf(pattern.first) > -1) {
                             skip = true;
                         }
                     }
@@ -327,7 +328,7 @@ void BackupJob::Private::backup()
                         query.addBindValue(static_cast<uint>(fileInfo.permissions()));
                         query.addBindValue(fileInfo.ownerId());
                         query.addBindValue(fileInfo.groupId());
-                        query.addBindValue(fileInfo.created());
+                        query.addBindValue(CarpetDB::created(fileInfo));
                         query.addBindValue(fileInfo.lastModified());
                         query.addBindValue(fileInfo.lastRead());
                         if (!exec(query)) return;

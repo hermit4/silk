@@ -42,7 +42,6 @@
 #include <QtSql/QSqlQuery>
 #include <QtSql/QSqlError>
 
-#include <silkconfig.h>
 
 #include "backupjob.h"
 #include "updatestatisticsjob.h"
@@ -99,8 +98,8 @@ public:
 Backup::Private::Private(Backup *parent)
     : q(parent)
     , status(Backup::Waiting)
-    , from(SilkConfig::value("carpet.from").toString())
-    , to(SilkConfig::value("carpet.to").toString())
+    , from(CarpetDB::from())
+    , to(CarpetDB::to())
 {
     connect(this, SIGNAL(done(bool,QString)), this, SLOT(slotDone(bool,QString)));
     setupDatabase();
@@ -112,7 +111,10 @@ void Backup::Private::setupDatabase()
     QMutexLocker locker(&CarpetDB::mutex());
     qDebug() << Q_FUNC_INFO << __LINE__;
     db = QSqlDatabase::addDatabase(QLatin1String("QSQLITE"), QLatin1String("carpet"));
+    QDir().mkpath(to);
     db.setDatabaseName(QString("%1/carpet.sqlite").arg(to));
+    // jobs write to the same file through their own connection (CarpetDB::jobDatabase())
+    db.setConnectOptions(QStringLiteral("QSQLITE_BUSY_TIMEOUT=10000"));
     if (db.open()) {
         if (db.transaction()) {
             if (createTables()) {
@@ -364,7 +366,7 @@ bool Backup::Private::restore(int fileTreeId, const QString &to, const QString &
                 dir.mkpath(fullPath);
             }
             QFileInfo fileInfo(fullPath);
-            if (fileInfo.permissions() != permissions) {
+            if (int(fileInfo.permissions()) != permissions) {
                 QFile::setPermissions(fullPath, static_cast<QFile::Permissions>(permissions));
             }
             if (fileInfo.ownerId() != ownerId) {
@@ -373,13 +375,13 @@ bool Backup::Private::restore(int fileTreeId, const QString &to, const QString &
             if (fileInfo.groupId() != groupId) {
                 // TODO
             }
-            if (fileInfo.created() != ctime) {
+            if (CarpetDB::created(fileInfo) != ctime) {
                 // TODO ?
             }
             if (fileInfo.lastModified() != mtime || fileInfo.lastRead() != atime) {
                 utimbuf t;
-                t.modtime = mtime.toTime_t();
-                t.actime = atime.toTime_t();
+                t.modtime = mtime.toSecsSinceEpoch();
+                t.actime = atime.toSecsSinceEpoch();
                 utime(fullPath.toUtf8().constData(), &t);
             }
 
@@ -429,7 +431,7 @@ bool Backup::Private::restore(int fileTreeId, const QString &to, const QString &
                 out.close();
                 in.close();
 
-                if (fileInfo.permissions() != permissions) {
+                if (int(fileInfo.permissions()) != permissions) {
                     QFile::setPermissions(fullPath, static_cast<QFile::Permissions>(permissions));
                 }
                 if (fileInfo.ownerId() != ownerId) {
@@ -438,13 +440,13 @@ bool Backup::Private::restore(int fileTreeId, const QString &to, const QString &
                 if (fileInfo.groupId() != groupId) {
                     // TODO
                 }
-                if (fileInfo.created() != ctime) {
+                if (CarpetDB::created(fileInfo) != ctime) {
                     // TODO ?
                 }
                 if (fileInfo.lastModified() != mtime || fileInfo.lastRead() != atime) {
                     utimbuf t;
-                    t.modtime = mtime.toTime_t();
-                    t.actime = atime.toTime_t();
+                    t.modtime = mtime.toSecsSinceEpoch();
+                    t.actime = atime.toSecsSinceEpoch();
                     utime(fullPath.toUtf8().constData(), &t);
                 }
             }
@@ -493,7 +495,7 @@ QVariantMap Backup::Private::contents(const QString &path, const QString &backup
             fileId = query.value(0).toInt();
         }
         qDebug() << Q_FUNC_INFO << __LINE__ << fileId;
-        foreach (const QString &item, path.split("/", QString::SkipEmptyParts)) {
+        foreach (const QString &item, path.split("/", Qt::SkipEmptyParts)) {
             QSqlQuery query(db);
             query.prepare("SELECT fileId FROM File WHERE directoryID = ? AND fileName = ?");
             query.addBindValue(fileId);
@@ -546,7 +548,7 @@ QVariantMap Backup::Private::diff(const QString &path, const QString &backup) co
         if (!query.first()) return ret;
         fileId = query.value(0).toInt();
     }
-    foreach (const QString &item, path.split("/", QString::SkipEmptyParts)) {
+    foreach (const QString &item, path.split("/", Qt::SkipEmptyParts)) {
         QSqlQuery query(db);
         query.prepare("SELECT fileId FROM File WHERE directoryID = ? AND fileName = ?");
         query.addBindValue(fileId);
@@ -655,9 +657,8 @@ QVariantMap Backup::Private::fileInfo(int fileId) const
 
 QVariantList Backup::Private::tree(const QString &path) const
 {
-    qDebug() << Q_FUNC_INFO << __LINE__;
-    QMutexLocker locker(&CarpetDB::mutex());
-    qDebug() << Q_FUNC_INFO << __LINE__;
+    // only reads the file system; it recursed into itself while holding the (non-recursive)
+    // database mutex and so locked up as soon as a directory had a subdirectory
     QVariantList ret;
 
     QDir dir(path.isEmpty() ? from : path);

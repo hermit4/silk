@@ -2,13 +2,16 @@ TARGET = carpet
 include(../../../../silkapp.pri)
 include(../../../../contents/contents.pri)
 
+# demos are built, not installed
+INSTALLS -= target
+
 SOURCES += main.cpp
 
 RESOURCES += \
     carpet.qrc
 
 OTHER_FILES += \
-    carpetrc \
+    carpetconfig.qml \
     contents/index.qml \
     app/web/css.qml \
     app/web/index.js \

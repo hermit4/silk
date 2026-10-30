@@ -26,7 +26,20 @@
 
 #include "carpetdb.h"
 #include <QtCore/QDebug>
+#include <QtCore/QDir>
 #include <QtSql/QSqlError>
+
+#include <silkconfig.h>
+
+static QString carpetConfig(const QString &key, const QString &defaultValue)
+{
+    if (SilkConfig::value(QStringLiteral("carpet")).isValid()) {
+        QString value = SilkConfig::value(QStringLiteral("carpet.") + key).toString();
+        if (!value.isEmpty())
+            return value;
+    }
+    return defaultValue;
+}
 
 QMutex &CarpetDB::mutex()
 {
@@ -44,6 +57,27 @@ QSqlDatabase &CarpetDB::database()
 
         }
     }
+    return ret;
+}
+
+QString CarpetDB::from()
+{
+    return carpetConfig(QStringLiteral("from"), QDir::homePath());
+}
+
+QString CarpetDB::to()
+{
+    return carpetConfig(QStringLiteral("to"), QDir::home().absoluteFilePath(QStringLiteral(".carpet")));
+}
+
+QSqlDatabase CarpetDB::jobDatabase()
+{
+    const QString name = QStringLiteral("carpet-jobs");
+    if (QSqlDatabase::contains(name))
+        return QSqlDatabase::database(name);
+    QSqlDatabase ret = QSqlDatabase::cloneDatabase(QStringLiteral("carpet"), name);
+    if (!ret.open())
+        qWarning() << Q_FUNC_INFO << __LINE__ << ret.lastError().text();
     return ret;
 }
 

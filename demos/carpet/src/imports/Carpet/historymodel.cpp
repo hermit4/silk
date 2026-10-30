@@ -73,7 +73,7 @@ void HistoryModel::update()
             if (!query.first()) return;
             fileId = query.value(0).toInt();
         }
-        foreach (const QString &item, m_path.split("/", QString::SkipEmptyParts)) {
+        foreach (const QString &item, m_path.split("/", Qt::SkipEmptyParts)) {
             QSqlQuery query(db);
             query.prepare("SELECT fileId FROM File WHERE directoryID = ? AND fileName = ?");
             query.addBindValue(fileId);
