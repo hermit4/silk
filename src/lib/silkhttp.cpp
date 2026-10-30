@@ -25,6 +25,7 @@
  */
 
 #include "silkhttp.h"
+#include "silkconfig.h"
 #include "silkserver_logging.h"
 
 #include <QtCore/QDebug>
@@ -399,8 +400,33 @@ void SilkWebSocket::accept(const QByteArray &protocol)
     server->handleConnection(m_socket);
 }
 
+// websocket: { 'maxMessageSize': 1048576 }; larger messages close the connection
+// (QWebSocketProtocol::CloseCodeTooMuchData). Qt's own limit is about 2 GiB.
+static quint64 maxMessageSize()
+{
+    static const quint64 size = []() -> quint64 {
+        const quint64 defaultSize = 1024 * 1024;
+        if (!SilkConfig::value("websocket").isValid())
+            return defaultSize;
+        const QVariant value = SilkConfig::value("websocket.maxMessageSize");
+        if (!value.isValid())
+            return defaultSize;
+        bool ok = false;
+        const quint64 size = value.toULongLong(&ok);
+        if (!ok || size == 0 || size > QWebSocket::maxIncomingMessageSize()) {
+            ssWarning() << "websocket.maxMessageSize:" << value << "is not a size up to"
+                        << QWebSocket::maxIncomingMessageSize() << "; using" << defaultSize;
+            return defaultSize;
+        }
+        return size;
+    }();
+    return size;
+}
+
 void SilkWebSocket::handshakeDone()
 {
+    m_webSocket->setMaxAllowedIncomingMessageSize(maxMessageSize());
+    m_webSocket->setMaxAllowedIncomingFrameSize(qMin(maxMessageSize(), QWebSocket::maxIncomingFrameSize()));
     connect(m_webSocket, &QWebSocket::textMessageReceived, this, [this](const QString &message) {
         emit this->message(message.toUtf8(), false);
     });

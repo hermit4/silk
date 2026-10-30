@@ -86,3 +86,9 @@ Changes in Qt 6 that affect silk applications
   instead of a closed connection. WebSocket.close() sends a close frame.
 - A text message arrives as a string in message.data, a binary one as an ArrayBuffer.
   send() sends text.
+- A WebSocket message may be up to 1 MiB; a larger one closes the connection. Raise the
+  limit in silkconfig.qml if pages need it:
+
+      property var websocket: {
+          'maxMessageSize': 16777216
+      }
