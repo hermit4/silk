@@ -31,6 +31,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QPluginLoader>
+#include <QtCore/QPointer>
 #include <QtCore/QUrl>
 #include <QtNetwork/QNetworkCookie>
 #include <QtQml/qqml.h>
@@ -442,8 +443,13 @@ void QmlHandler::Private::exec(QQmlComponent *component, SilkWebSocket *socket, 
         if (!cache)
             connect(object, SIGNAL(destroyed()), this, SLOT(clearQmlCache()), Qt::QueuedConnection);
 
+        // the client may disconnect while events are processed; the socket, the component (its
+        // child) and, through setWebSocket(), the object are deleted then
+        QPointer<SilkWebSocket> guard(socket);
         object->setWebSocket(socket);
         QCoreApplication::processEvents();
+        if (!guard)
+            return;
         object->remoteAddress(socket->remoteAddress());
         QUrl url(socket->url());
         QString query(url.query());
@@ -476,6 +482,8 @@ void QmlHandler::Private::exec(QQmlComponent *component, SilkWebSocket *socket, 
 
         if (!message.isEmpty()) object->message(message);
         QCoreApplication::processEvents();
+        if (!guard)
+            return;
         QMetaObject::invokeMethod(object, "ready");
 
         component2object.insert(component, object);

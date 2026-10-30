@@ -35,6 +35,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QPluginLoader>
+#include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
@@ -567,6 +568,7 @@ void SilkServer::Private::incomingConnection(SilkHttpRequest *request, SilkHttpR
 
 void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
 {
+    QPointer<SilkWebSocket> guard(socket);
     ssRequest() << socket;
 
     QString str = socket->url().toString();
@@ -617,7 +619,9 @@ void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
             return;
         }
     }
-    ssOk() << socket;
+    // gone if the client disconnected while the page was loaded (it processes events)
+    if (guard)
+        ssOk() << socket;
 }
 
 void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
@@ -719,8 +723,9 @@ void SilkServer::Private::load(const QFileInfo &fileInfo, SilkWebSocket *socket,
         } else {
             url = QUrl::fromLocalFile(fileInfo.absoluteFilePath());
         }
+        QPointer<SilkWebSocket> guard(socket);
         bool ret = mimeHandlers[mime]->load(url, socket, message);
-        if (!ret) {
+        if (!ret && guard) {
             error(401, socket, socket->url().toString());
         }
     } else {
@@ -730,11 +735,12 @@ void SilkServer::Private::load(const QFileInfo &fileInfo, SilkWebSocket *socket,
 
 void SilkServer::Private::loadUrl(const QUrl &url, SilkWebSocket *socket, const QString &message)
 {
+    QPointer<SilkWebSocket> guard(socket);
     bool ret = false;
     if (protocolHandlers.contains(url.scheme())) {
         ret = protocolHandlers[url.scheme()]->load(url, socket, message);
     }
-    if (!ret) {
+    if (!ret && guard) {
         error(403, socket, socket->url().toString());
     }
 }
