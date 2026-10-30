@@ -3,6 +3,9 @@ Requirements
 
 - Qt 6.8 or later, with the Qt Qml and Qt HTTP Server modules
 - zlib
+- shared-mime-info: the content types of files come from the system MIME database.
+  Without it, Qt's built-in copy is used, which e.g. sends fonts as
+  application/octet-stream.
 
 Build and run
 -------------
@@ -102,8 +105,9 @@ Changes in Qt 6 that affect silk applications
 
 - Qt 6 refuses XMLHttpRequest on local files by default. silk allows reading them as
   with Qt 5; set the environment variable QML_XHR_ALLOW_FILE_READ=0 to refuse it.
-- JavaScript files are served as text/javascript instead of application/javascript.
-  Use the new name in the deflate configuration if you listed the old one.
+- Newer shared-mime-info (e.g. 2.4 of Ubuntu 24.04; 2.1 of Ubuntu 22.04 does not) names
+  JavaScript text/javascript instead of application/javascript. Use the name of your
+  system in the deflate configuration.
 - Response header names are sent in lower case. HTTP header names are case-insensitive.
 - Injecting signal parameters into handlers, e.g. onMessage: console.log(message),
   is deprecated and prints a warning. Declare them instead:
