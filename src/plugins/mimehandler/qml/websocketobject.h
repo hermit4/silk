@@ -76,7 +76,7 @@ signals:
     void messageChanged(const QString &message);
 
 private slots:
-    void onmessage(const QByteArray &msg);
+    void onmessage(const QByteArray &msg, bool binary);
 
 private:
     SilkWebSocket *m_socket;

@@ -36,8 +36,8 @@ WebSocketObject::WebSocketObject(QObject *parent)
 void WebSocketObject::setWebSocket(SilkWebSocket *socket)
 {
     m_socket = socket;
-    connect(socket, SIGNAL(message(QByteArray)), this, SLOT(onmessage(QByteArray)));
-    connect(socket, SIGNAL(destroyed()), this, SLOT(deleteLater()));
+    connect(socket, &SilkWebSocket::message, this, &WebSocketObject::onmessage);
+    connect(socket, &QObject::destroyed, this, &QObject::deleteLater);
 }
 
 void WebSocketObject::accept(const QByteArray &protocol)
@@ -55,9 +55,13 @@ void WebSocketObject::send(const QByteArray &data)
     m_socket->send(data);
 }
 
-void WebSocketObject::onmessage(const QByteArray &msg)
+void WebSocketObject::onmessage(const QByteArray &msg, bool binary)
 {
     QVariantMap map;
-    map.insert("data", msg);
+    // a text message is a string in QML, as with the Qt 5 version; a binary one an ArrayBuffer
+    if (binary)
+        map.insert("data", msg);
+    else
+        map.insert("data", QString::fromUtf8(msg));
     emit message(map);
 }

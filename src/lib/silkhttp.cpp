@@ -32,6 +32,9 @@
 #include <QtNetwork/QHttpHeaders>
 #include <QtHttpServer/QHttpServerRequest>
 #include <QtHttpServer/QHttpServerResponder>
+#include <QtNetwork/QTcpSocket>
+#include <QtWebSockets/QWebSocket>
+#include <QtWebSockets/QWebSocketServer>
 
 #include <zlib.h>
 
@@ -310,6 +313,156 @@ QDebug operator<<(QDebug dbg, const SilkHttpRequest *request)
     }
     dbg << " }";
     return dbg;
+}
+
+SilkWebSocket::SilkWebSocket(QTcpSocket *socket, const QByteArray &head, QObject *parent)
+    : QObject(parent)
+    , m_uuid(QUuid::createUuid())
+    , m_socket(socket)
+{
+    m_socket->setParent(this);
+    // Nothing reads the socket until the page accepts, which may take long or never happen.
+    // Stop reading from the kernel beyond the head instead of buffering whatever the client sends.
+    m_socket->setReadBufferSize(64 * 1024);
+    m_remoteAddress = m_socket->peerAddress().toString();
+    connect(m_socket, &QTcpSocket::disconnected, this, &QObject::deleteLater);
+
+    const QList<QByteArray> lines = head.split('\n');
+    const QList<QByteArray> requestLine = lines.value(0).trimmed().split(' ');
+    QByteArray host;
+    for (qsizetype i = 1; i < lines.size(); i++) {
+        const QByteArray line = lines.at(i).trimmed();
+        const qsizetype colon = line.indexOf(':');
+        if (colon <= 0)
+            continue;
+        const QByteArray name = line.left(colon).trimmed().toLower();
+        const QByteArray value = line.mid(colon + 1).trimmed();
+        if (name == "host") {
+            host = value;
+        } else if (name == "cookie") {
+            for (const QByteArray &c : value.split(';'))
+                m_cookies.append(QNetworkCookie::parseCookies(c));
+        } else if (m_rawHeaders.contains(name)) {
+            m_rawHeaders[name] += ", " + value;
+        } else {
+            m_rawHeaders.insert(name, value);
+        }
+    }
+
+    // the target is a path or an absolute URL; scheme, host and port follow qthttpserver
+    const QUrl target = QUrl::fromEncoded(requestLine.value(1));
+    m_url = QUrl::fromEncoded("ws://" + host);
+    if (m_url.port() <= 0)
+        m_url.setPort(80);
+    m_url.setPath(target.path(QUrl::FullyEncoded), QUrl::TolerantMode);
+    if (target.hasQuery())
+        m_url.setQuery(target.query(QUrl::FullyEncoded), QUrl::TolerantMode);
+}
+
+QHostAddress SilkWebSocket::peerAddress() const
+{
+    return m_webSocket ? m_webSocket->peerAddress() : m_socket->peerAddress();
+}
+
+void SilkWebSocket::accept(const QByteArray &protocol)
+{
+    if (m_accepted) {
+        ssWarning() << this << "accepted twice";
+        return;
+    }
+    m_accepted = true;
+    if (m_socket->state() != QAbstractSocket::ConnectedState) {
+        deleteLater();
+        return;
+    }
+    disconnect(m_socket, nullptr, this, nullptr);
+    m_socket->setReadBufferSize(0);
+
+    // The handshake is done by Qt WebSockets. A server per connection, so that the subprotocol
+    // is the one this page chose; it is selected only if the client offered it.
+    QWebSocketServer *server = new QWebSocketServer(QStringLiteral("silk"), QWebSocketServer::NonSecureMode, this);
+    if (!protocol.isEmpty())
+        server->setSupportedSubprotocols({ QString::fromUtf8(protocol) });
+    connect(server, &QWebSocketServer::newConnection, this, [this, server]() {
+        m_webSocket = server->nextPendingConnection();
+        if (!m_webSocket)
+            return;
+        m_webSocket->setParent(this);
+        server->deleteLater();
+        handshakeDone();
+    });
+    // the handshake failed, e.g. an unsupported version; Qt WebSockets answers and closes
+    connect(m_socket, &QTcpSocket::disconnected, this, [this]() {
+        if (!m_webSocket)
+            deleteLater();
+    });
+    server->handleConnection(m_socket);
+}
+
+void SilkWebSocket::handshakeDone()
+{
+    connect(m_webSocket, &QWebSocket::textMessageReceived, this, [this](const QString &message) {
+        emit this->message(message.toUtf8(), false);
+    });
+    connect(m_webSocket, &QWebSocket::binaryMessageReceived, this, [this](const QByteArray &message) {
+        emit this->message(message, true);
+    });
+    connect(m_webSocket, &QWebSocket::disconnected, this, &QObject::deleteLater);
+    for (const QByteArray &message : std::as_const(m_queue))
+        m_webSocket->sendTextMessage(QString::fromUtf8(message));
+    m_queue.clear();
+    if (m_closing)
+        m_webSocket->close();
+}
+
+static QByteArray reasonPhrase(int status)
+{
+    switch (status) {
+    case 301: return QByteArrayLiteral("Moved Permanently");
+    case 400: return QByteArrayLiteral("Bad Request");
+    case 401: return QByteArrayLiteral("Unauthorized");
+    case 403: return QByteArrayLiteral("Forbidden");
+    case 404: return QByteArrayLiteral("Not Found");
+    case 500: return QByteArrayLiteral("Internal Server Error");
+    case 501: return QByteArrayLiteral("Not Implemented");
+    default: return QByteArrayLiteral("Error");
+    }
+}
+
+void SilkWebSocket::reject(int status, const QByteArray &location)
+{
+    if (m_accepted) {
+        close();
+        return;
+    }
+    m_accepted = true;
+    QByteArray response = "HTTP/1.1 " + QByteArray::number(status) + ' ' + reasonPhrase(status) + "\r\n";
+    if (!location.isEmpty() && !location.contains('\r') && !location.contains('\n'))
+        response += "Location: " + location + "\r\n";
+    response += "Content-Length: 0\r\nConnection: close\r\n\r\n";
+    m_socket->write(response);
+    m_socket->disconnectFromHost();
+}
+
+void SilkWebSocket::close()
+{
+    if (m_webSocket) {
+        m_webSocket->close();
+    } else if (m_accepted) {
+        // the handshake is in progress
+        m_closing = true;
+    } else {
+        m_accepted = true;
+        m_socket->disconnectFromHost();
+    }
+}
+
+void SilkWebSocket::send(const QByteArray &message)
+{
+    if (m_webSocket)
+        m_webSocket->sendTextMessage(QString::fromUtf8(message));
+    else
+        m_queue.append(message);
 }
 
 QDebug operator<<(QDebug dbg, const SilkWebSocket *socket)

@@ -1,7 +1,7 @@
 TEMPLATE = lib
 TARGET = silk
 
-QT = network httpserver qml
+QT = network httpserver websockets qml
 
 LIBS += -lz
 

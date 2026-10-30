@@ -43,6 +43,9 @@
 class QHttpServerRequest;
 class QHttpServerResponder;
 class QDebug;
+class QHostAddress;
+class QTcpSocket;
+class QWebSocket;
 
 class SILK_EXPORT SilkHttpFileData : public QBuffer
 {
@@ -138,33 +141,55 @@ private:
     QByteArray m_data;
 };
 
-// WebSocket is reimplemented in #5. Until then this class only keeps the WebSocket code
-// paths compiling; it is never instantiated.
+// A WebSocket upgrade request, taken before Qt HTTP Server sees it (see SilkServer). The page
+// decides whether to accept and with which subprotocol; only then the handshake is done, by
+// Qt WebSockets. Until accept() the connection can still be answered with an HTTP status.
 class SILK_EXPORT SilkWebSocket : public QObject
 {
     Q_OBJECT
 public:
-    using QObject::QObject;
+    // takes the socket; head is the request line and the header lines, up to the empty line
+    SilkWebSocket(QTcpSocket *socket, const QByteArray &head, QObject *parent = nullptr);
 
     const QUuid &uuid() const { return m_uuid; }
+    // ws://host:port/path?query, the host and port from the Host header
     const QUrl &url() const { return m_url; }
     void setUrl(const QUrl &url) { m_url = url; }
+    // the peer address, or the client address forwarded by a trusted proxy
     const QString &remoteAddress() const { return m_remoteAddress; }
-    QByteArray rawHeader(const QByteArray &headerName) const { Q_UNUSED(headerName) return QByteArray(); }
-    QList<QByteArray> rawHeaderList() const { return QList<QByteArray>(); }
+    void setRemoteAddress(const QString &remoteAddress) { m_remoteAddress = remoteAddress; }
+    QHostAddress peerAddress() const;
+    // header names are stored in lower case; Host and Cookie are not included
+    bool hasRawHeader(const QByteArray &headerName) const { return m_rawHeaders.contains(headerName.toLower()); }
+    QByteArray rawHeader(const QByteArray &headerName) const { return m_rawHeaders.value(headerName.toLower()); }
+    QList<QByteArray> rawHeaderList() const { return m_rawHeaders.keys(); }
     const QList<QNetworkCookie> &cookies() const { return m_cookies; }
-    void accept(const QByteArray &protocol = QByteArray()) { Q_UNUSED(protocol) }
-    void close() {}
-    void send(const QByteArray &message) { Q_UNUSED(message) }
+
+    // completes the handshake; protocol is sent as Sec-WebSocket-Protocol if the client offered it
+    void accept(const QByteArray &protocol = QByteArray());
+    // answers the upgrade request with an HTTP status instead; only before accept()
+    void reject(int status, const QByteArray &location = QByteArray());
+    void close();
+    // a text message; messages sent before the handshake is done are queued
+    void send(const QByteArray &message);
 
 signals:
-    void message(const QByteArray &message);
+    void message(const QByteArray &message, bool binary);
 
 private:
+    void handshakeDone();
+
     QUuid m_uuid;
     QUrl m_url;
     QString m_remoteAddress;
+    QHash<QByteArray, QByteArray> m_rawHeaders;
     QList<QNetworkCookie> m_cookies;
+    // the raw connection until the handshake; then it belongs to m_webSocket
+    QTcpSocket *m_socket;
+    QWebSocket *m_webSocket = nullptr;
+    bool m_accepted = false;
+    bool m_closing = false;
+    QList<QByteArray> m_queue;
 };
 
 SILK_EXPORT QDebug operator<<(QDebug dbg, const SilkHttpRequest *request);
