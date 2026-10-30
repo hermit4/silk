@@ -55,6 +55,19 @@ if pages use http.host. With nginx:
 Redirects to directories use a relative Location, so the proxy does not need to
 rewrite it.
 
+WebSocket (Silk.WebSocket) needs a TCP listener: Qt WebSockets cannot use a UNIX domain
+socket, and upgrades arriving there are answered with 501. Behind nginx, forward the
+upgrade to a TCP address:
+
+    location /chat/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
 Changes in Qt 6 that affect silk applications
 ---------------------------------------------
 
@@ -66,3 +79,10 @@ Changes in Qt 6 that affect silk applications
 - Injecting signal parameters into handlers, e.g. onMessage: console.log(message),
   is deprecated and prints a warning. Declare them instead:
   onMessage: function(message) { console.log(message) }
+- WebSocket is implemented with Qt WebSockets (RFC 6455). The obsolete hixie-76
+  handshake (draft-00) of 2010 browsers is no longer supported.
+- A WebSocket upgrade must be the first request on its connection, as browsers send it.
+- A rejected WebSocket upgrade (e.g. a missing page) gets an HTTP error response
+  instead of a closed connection. WebSocket.close() sends a close frame.
+- A text message arrives as a string in message.data, a binary one as an ArrayBuffer.
+  send() sends text.
