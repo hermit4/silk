@@ -68,6 +68,35 @@ upgrade to a TCP address:
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
+Demos
+-----
+
+The demos are built with silk, but not installed. Run them from the build directory.
+
+- minimal: silk embedded in an application, with its pages and configuration
+  (minimalconfig.qml) in the resources. Copy demos/minimal/ and rename minimal* to
+  start your own service.
+
+  $ ./bin/minimal
+  (http://localhost:8080/)
+
+- carpet: a backup service with its own QML import (Carpet). It backs up your home
+  directory to ~/.carpet. The settings page starts a backup, turns on backups every
+  30 minutes (off at first) and takes patterns of files not to back up. Showing
+  changes needs the diff command.
+  To back up something else, copy demos/carpet/src/carpet/carpetconfig.qml, set
+  carpet: { 'from': ..., 'to': ... } in it and pass it with --config.
+
+  $ ./bin/carpet
+  (http://localhost:18080/)
+
+- bootstrap: part of the Bootstrap 2.3 documentation written in QML (Silk.Bootstrap),
+  served by silk itself. Only some pages were ported; links to the others end in 404.
+  CSS and JavaScript are loaded from getbootstrap.com.
+
+  $ ./bin/silk --config demos/bootstrapconfig.qml
+  (http://localhost:8081/)
+
 Changes in Qt 6 that affect silk applications
 ---------------------------------------------
 
