@@ -25,7 +25,7 @@
  */
 
 import Silk.HTML 5.0
-import "http://git.qtquick.me/?p=silk.git;a=blob_plain;f=contents/root/examples/components/" as Remote
+import "https://raw.githubusercontent.com/qt-users-jp/silk/master/contents/root/examples/components/" as Remote
 
 Html {
     Head {
