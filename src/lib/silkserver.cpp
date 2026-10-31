@@ -38,6 +38,7 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QTimeZone>
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostAddress>
@@ -209,8 +210,9 @@ public:
 
 private:
     QString documentRootForRequest(const QUrl &url) const;
-    void load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
-    void loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply);
+    // conditional: whether If-Modified-Since may turn a static file into 304; not for error pages
+    void load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString(), bool conditional = true);
+    void loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, bool conditional);
     void loadUrl(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
     void load(const QFileInfo &fileInfo, SilkWebSocket *socket, const QString &message = QString());
     void loadUrl(const QUrl &url, SilkWebSocket *socket, const QString &message = QString());
@@ -469,6 +471,64 @@ static QString directoryLocation(const QUrl &url)
     return location;
 }
 
+// An HTTP-date (RFC 9110, section 5.6.7): IMF-fixdate, or one of the obsolete RFC 850 and
+// asctime forms, all in GMT. Anything else gives an invalid QDateTime.
+static QDateTime parseHttpDate(const QByteArray &value)
+{
+    static const QString months = QStringLiteral("Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec");
+    static const QString clock = QStringLiteral("(?<hour>\\d{2}):(?<minute>\\d{2}):(?<second>\\d{2})");
+    static const QRegularExpression forms[] = {
+        // IMF-fixdate: Sun, 06 Nov 1994 08:49:37 GMT
+        QRegularExpression(QStringLiteral("^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), (?<day>\\d{2}) (?<month>%1) (?<year>\\d{4}) %2 GMT$").arg(months, clock)),
+        // RFC 850: Sunday, 06-Nov-94 08:49:37 GMT
+        QRegularExpression(QStringLiteral("^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), (?<day>\\d{2})-(?<month>%1)-(?<year>\\d{2}) %2 GMT$").arg(months, clock)),
+        // asctime: Sun Nov  6 08:49:37 1994
+        QRegularExpression(QStringLiteral("^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?<month>%1) (?<day>[ \\d]\\d) %2 (?<year>\\d{4})$").arg(months, clock)),
+    };
+    static const QStringList monthNames = months.split(QLatin1Char('|'));
+
+    const QString text = QString::fromLatin1(value.trimmed());
+    for (const QRegularExpression &form : forms) {
+        const QRegularExpressionMatch m = form.match(text);
+        if (!m.hasMatch())
+            continue;
+        int year = m.captured(u"year").toInt();
+        if (m.captured(u"year").size() == 2) {
+            // a two-digit year more than 50 years in the future is the most recent past year
+            // with the same last two digits
+            const int thisYear = QDateTime::currentDateTimeUtc().date().year();
+            year += thisYear / 100 * 100;
+            if (year > thisYear + 50)
+                year -= 100;
+        }
+        const QDate date(year, monthNames.indexOf(m.captured(u"month")) + 1, m.captured(u"day").trimmed().toInt());
+        const QTime time(m.captured(u"hour").toInt(), m.captured(u"minute").toInt(), m.captured(u"second").toInt());
+        if (!date.isValid() || !time.isValid())
+            return QDateTime();
+        return QDateTime(date, time, QTimeZone::UTC);
+    }
+    return QDateTime();
+}
+
+// RFC 9110, section 13.1.3, but stricter (see below). silk sends no ETag, so with If-None-Match nothing can match and
+// If-Modified-Since must be ignored.
+static bool isNotModified(const SilkHttpRequest *request, const QDateTime &lastModified)
+{
+    if (request->method() != "GET" && request->method() != "HEAD")
+        return false;
+    if (request->hasRawHeader("If-None-Match") || !request->hasRawHeader("If-Modified-Since"))
+        return false;
+    const QDateTime since = parseHttpDate(request->rawHeader("If-Modified-Since"));
+    if (!since.isValid())
+        return false;
+    // only the time that was sent as Last-Modified (whole seconds), as nginx does by default
+    // (if_modified_since exact): with "not newer than", a file put back to an older version
+    // (a rollback, cp -p, docker COPY keep the times) would never reach clients that cached
+    // the newer one, and a date in the future would match every file. Answering 200 is
+    // always allowed.
+    return lastModified.toSecsSinceEpoch() == since.toSecsSinceEpoch();
+}
+
 // X-Forwarded-For can be set by anyone; it is only used when the peer is a trusted reverse
 // proxy, and then only its last entry, which the proxy itself appended. X-Real-IP is not used:
 // a proxy that only appends X-Forwarded-For passes a client's X-Real-IP through.
@@ -625,7 +685,7 @@ void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
         ssOk() << socket;
 }
 
-void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
+void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message, bool conditional)
 {
     QStringList mimeTypeListNeedCharset;
     mimeTypeListNeedCharset << QStringLiteral("text/x-qml")
@@ -660,14 +720,14 @@ void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *reque
         }
         bool ret = mimeHandlers[mime]->load(url, request, reply, message);
         if (!ret) {
-            loadFile(fileInfo, request, reply);
+            loadFile(fileInfo, request, reply, conditional);
         }
     } else {
-        loadFile(fileInfo, request, reply);
+        loadFile(fileInfo, request, reply, conditional);
     }
 }
 
-void SilkServer::Private::loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply)
+void SilkServer::Private::loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, bool conditional)
 {
     if (fileInfo.fileName().startsWith(".")) {
         error(403, request, reply, request->url().toString());
@@ -676,11 +736,20 @@ void SilkServer::Private::loadFile(const QFileInfo &fileInfo, SilkHttpRequest *r
         QFile file(fileInfo.absoluteFilePath());
         if (file.open(QFile::ReadOnly)) {
             QDateTime lastModified = fileInfo.lastModified();
-            if (lastModified.isNull()) {
+            // without a known time (e.g. some resources), never answer 304: the epoch below
+            // would match every If-Modified-Since, even after the file changed
+            const bool knownTime = lastModified.isValid();
+            if (!knownTime) {
                 lastModified.setSecsSinceEpoch(0);
             }
             // an HTTP-date (RFC 9110, IMF-fixdate): English names, always in GMT
             reply->setRawHeader("Last-Modified", QLocale::c().toString(lastModified.toUTC(), QStringLiteral("ddd, dd MMM yyyy hh:mm:ss 'GMT'")).toUtf8());
+            if (conditional && knownTime && isNotModified(request, lastModified)) {
+                file.close();
+                reply->setStatus(304);
+                reply->close();
+                return;
+            }
             while (!file.atEnd()) {
                 reply->write(file.read(1024 * 1024));
             }
@@ -708,9 +777,9 @@ void SilkServer::Private::error(int statusCode, SilkHttpRequest *request, SilkHt
     ssError() << request << statusCode << message;
     QString documentRoot = documentRootForRequest(request->url());
     if (QFile::exists(QString::fromUtf8("%1/errors/%2.qml").arg(documentRoot).arg(statusCode))) {
-        load(QFileInfo(QString::fromUtf8("%1/errors/%2.qml").arg(documentRoot).arg(statusCode)), request, reply, message);
+        load(QFileInfo(QString::fromUtf8("%1/errors/%2.qml").arg(documentRoot).arg(statusCode)), request, reply, message, false);
     } else if (QFile::exists(QString::fromUtf8(":/errors/%2.qml").arg(statusCode))) {
-        load(QFileInfo(QString::fromUtf8(":/errors/%2.qml").arg(statusCode)), request, reply, message);
+        load(QFileInfo(QString::fromUtf8(":/errors/%2.qml").arg(statusCode)), request, reply, message, false);
     } else {
         // an application without silk's error pages; loading a missing page would end in
         // another error, over and over
