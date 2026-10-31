@@ -33,6 +33,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QDir>
 #include <QtCore/QFile>
+#include <QtCore/QLocale>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QPluginLoader>
 #include <QtCore/QPointer>
@@ -678,7 +679,8 @@ void SilkServer::Private::loadFile(const QFileInfo &fileInfo, SilkHttpRequest *r
             if (lastModified.isNull()) {
                 lastModified.setSecsSinceEpoch(0);
             }
-            reply->setRawHeader("Last-Modified", lastModified.toUTC().toString("ddd, d, MMM yyyy hh:mm:ss UTC").toUtf8());
+            // an HTTP-date (RFC 9110, IMF-fixdate): English names, always in GMT
+            reply->setRawHeader("Last-Modified", QLocale::c().toString(lastModified.toUTC(), QStringLiteral("ddd, dd MMM yyyy hh:mm:ss 'GMT'")).toUtf8());
             while (!file.atEnd()) {
                 reply->write(file.read(1024 * 1024));
             }
