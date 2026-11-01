@@ -302,14 +302,14 @@ Silk::Color Silk::Color::changeValue(qreal factor) const
         h = 0;
     } else if (max == r) {
         h = 60 * (g - b) / (max - min);
-    } if (max == g) {
+    } else if (max == g) {
         h = 60 * (b - r) / (max - min) + 120;
     } else {
         h = 60 * (r - g) / (max - min) + 240;
     }
     if (h < 0)
         h += 360;
-    int s = 255 * (max - min) / max;
+    int s = max == 0 ? 0 : 255 * (max - min) / max;
     int v = max;
 
     v *= factor;
