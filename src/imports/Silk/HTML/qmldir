@@ -48,7 +48,7 @@ Caption 4.1 401_Caption.qml
 THead 4.1 401_THead.qml
 TBody 4.1 401_TBody.qml
 TFoot 4.1 401_TFoot.qml
-Colgroup 4.1 401_Colgroup.qml
+Colgroup 4.1 401_ColGroup.qml
 Col 4.1 401_Col.qml
 Tr 4.1 401_Tr.qml
 Th 4.1 401_Th.qml
