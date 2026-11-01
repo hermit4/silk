@@ -366,7 +366,9 @@ void QmlHandler::Private::loadingChanged(bool loading)
 {
     if (!loading) {
         HttpObject *http = qobject_cast<HttpObject *>(sender());
-        close(qobject_cast<SilkAbstractHttpObject *>(http->children().first()));
+        // the page object exec() registered for this http; not found among http's children,
+        // where the uploaded files (HttpFileData) come before it
+        close(qobject_cast<SilkAbstractHttpObject *>(object2http.key(http)));
     }
 }
 
