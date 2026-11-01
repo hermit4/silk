@@ -272,10 +272,19 @@ void QmlHandler::Private::exec(QQmlComponent *component, SilkHttpRequest *reques
         context->setContextProperty(QStringLiteral("http"), http);
 
         QObject *o = component->create(context);
+        if (!o) {
+            // e.g. an unset required property: the component is Ready but creating it fails
+            qDebug() << Q_FUNC_INFO << __LINE__ << component->errors();
+            delete context;
+            emit q->error(500, request, reply, component->errorString());
+            return;
+        }
         o->setParent(http);
 
         SilkAbstractHttpObject *object = qobject_cast<SilkAbstractHttpObject*>(o);
         if (!object) {
+            // o may still use the context; let both go with http (o is destroyed first)
+            context->setParent(http);
             emit q->error(403, request, reply, request->url().toString());
             return;
         }
@@ -293,6 +302,7 @@ void QmlHandler::Private::exec(QQmlComponent *component, SilkHttpRequest *reques
                 connect(http, SIGNAL(loadingChanged(bool)), this, SLOT(loadingChanged(bool)));
             }
         } else {
+            context->setParent(http);
             emit q->error(403, request, reply, request->url().toString());
         }
 
