@@ -444,6 +444,21 @@ static bool isSafePath(const QString &path)
     return !segments.contains(QStringLiteral(".")) && !segments.contains(QStringLiteral(".."));
 }
 
+// Nothing in a dot-directory (e.g. .git) and no dot-file is served from a local document
+// root, whatever the last segment is. A leading /.well-known/ (RFC 8615, e.g. ACME challenges)
+// is the exception; dot-segments below it are still hidden. The path is decoded, so %2e is
+// caught as well.
+static bool isHiddenPath(const QString &path)
+{
+    const QStringList segments = path.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+    for (qsizetype i = 0; i < segments.size(); ++i) {
+        const QString &segment = segments.at(i);
+        if (segment.startsWith(QLatin1Char('.')) && !(i == 0 && segment == QLatin1String(".well-known")))
+            return true;
+    }
+    return false;
+}
+
 // a second line of defense: the file name must stay inside the document root
 static bool isInside(const QString &fileName, const QString &documentRoot)
 {
@@ -606,6 +621,10 @@ void SilkServer::Private::incomingConnection(SilkHttpRequest *request, SilkHttpR
             error(400, request, reply);
             return;
         }
+        if (isHiddenPath(request->url().path())) {
+            error(403, request, reply, request->url().toString());
+            return;
+        }
         QFileInfo fileInfo(fileName);
         if (fileInfo.isDir()) {
             if (request->url().path().endsWith("/")) {
@@ -660,6 +679,10 @@ void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
         QString fileName(documentRoot + socket->url().path());
         if (!isInside(fileName, documentRoot)) {
             error(400, socket);
+            return;
+        }
+        if (isHiddenPath(socket->url().path())) {
+            error(403, socket, socket->url().toString());
             return;
         }
         QFileInfo fileInfo(fileName);
