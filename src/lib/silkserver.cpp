@@ -729,7 +729,7 @@ void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *reque
     if (mimeTypeListNeedCharset.contains(mime)) {
         contentType.append(QStringLiteral("; charset=utf-8"));
     }
-    reply->setStatus(200);
+    reply->setStatus(errorStatus ? errorStatus : 200);
     reply->setRawHeader("Content-Type", contentType.toUtf8());
     if (!mimeHandlers.contains(mime)) {
         mime = mime.section(QLatin1Char('/'), 0, 0) + QStringLiteral("/*");

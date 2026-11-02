@@ -114,6 +114,10 @@ Changes in Qt 6 that affect silk applications
   onMessage: function(message) { console.log(message) }
 - WebSocket is implemented with Qt WebSockets (RFC 6455). The obsolete hixie-76
   handshake (draft-00) of 2010 browsers is no longer supported.
+- An error page (errors/<status>.qml) starts with http.status set to its error instead
+  of 200, so it no longer has to set it. A page that shows its content only when
+  http.status is 200 must change that check. An error page that cannot be run is not
+  sent as a file: the client gets the status alone.
 - A WebSocket upgrade must be the first request on its connection, as browsers send it.
 - A rejected WebSocket upgrade (e.g. a missing page) gets an HTTP error response
   instead of a closed connection. WebSocket.close() sends a close frame.

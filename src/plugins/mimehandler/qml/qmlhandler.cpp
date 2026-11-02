@@ -229,6 +229,8 @@ void QmlHandler::Private::exec(QQmlComponent *component, SilkHttpRequest *reques
         break;
     case QQmlComponent::Ready: {
         HttpObject *http = new HttpObject(component);
+        // an error page starts with the status of its error; the page can still change it
+        http->status(reply->status());
         http->remoteAddress(request->remoteAddress());
         http->method(QString::fromLatin1(request->method()));
         QUrl url(request->url());
