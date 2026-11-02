@@ -210,9 +210,9 @@ public:
 
 private:
     QString documentRootForRequest(const QUrl &url) const;
-    // conditional: whether If-Modified-Since may turn a static file into 304; not for error pages
-    void load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString(), bool conditional = true);
-    void loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, bool conditional);
+    // errorStatus: fileInfo is the page of this error, which is never sent as a static file
+    void load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString(), int errorStatus = 0);
+    void loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply);
     void loadUrl(const QUrl &url, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message = QString());
     void load(const QFileInfo &fileInfo, SilkWebSocket *socket, const QString &message = QString());
     void loadUrl(const QUrl &url, SilkWebSocket *socket, const QString &message = QString());
@@ -708,7 +708,7 @@ void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
         ssOk() << socket;
 }
 
-void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message, bool conditional)
+void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message, int errorStatus)
 {
     QStringList mimeTypeListNeedCharset;
     mimeTypeListNeedCharset << QStringLiteral("text/x-qml")
@@ -741,16 +741,19 @@ void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *reque
         } else {
             url = QUrl::fromLocalFile(fileInfo.absoluteFilePath());
         }
-        bool ret = mimeHandlers[mime]->load(url, request, reply, message);
-        if (!ret) {
-            loadFile(fileInfo, request, reply, conditional);
-        }
+        if (mimeHandlers[mime]->load(url, request, reply, message))
+            return;
+    }
+    if (errorStatus) {
+        // e.g. a page that is not executable for others: this status was tried, so it goes out bare
+        ssWarning() << "cannot use the error page" << fileInfo.filePath();
+        error(errorStatus, request, reply, message);
     } else {
-        loadFile(fileInfo, request, reply, conditional);
+        loadFile(fileInfo, request, reply);
     }
 }
 
-void SilkServer::Private::loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, bool conditional)
+void SilkServer::Private::loadFile(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply)
 {
     if (fileInfo.fileName().startsWith(".")) {
         error(403, request, reply, request->url().toString());
@@ -767,7 +770,7 @@ void SilkServer::Private::loadFile(const QFileInfo &fileInfo, SilkHttpRequest *r
             }
             // an HTTP-date (RFC 9110, IMF-fixdate): English names, always in GMT
             reply->setRawHeader("Last-Modified", QLocale::c().toString(lastModified.toUTC(), QStringLiteral("ddd, dd MMM yyyy hh:mm:ss 'GMT'")).toUtf8());
-            if (conditional && knownTime && isNotModified(request, lastModified)) {
+            if (knownTime && isNotModified(request, lastModified)) {
                 file.close();
                 reply->setStatus(304);
                 reply->close();
@@ -811,7 +814,7 @@ void SilkServer::Private::error(int statusCode, SilkHttpRequest *request, SilkHt
             page = builtin;
     }
     if (!page.isEmpty()) {
-        load(QFileInfo(page), request, reply, message, false);
+        load(QFileInfo(page), request, reply, message, statusCode);
     } else {
         // no page to use, or an application without silk's error pages; loading a missing page
         // would end in another error, over and over
