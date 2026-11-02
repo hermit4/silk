@@ -34,6 +34,7 @@
 
 #include <QtCore/QBuffer>
 #include <QtCore/QHash>
+#include <QtCore/QSet>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtNetwork/QNetworkCookie>
@@ -116,7 +117,16 @@ public:
     bool hasRawHeader(const QByteArray &headerName) const { return m_rawHeaders.contains(headerName); }
     QByteArray rawHeader(const QByteArray &headerName) const { return m_rawHeaders.value(headerName); }
     void setRawHeader(const QByteArray &headerName, const QByteArray &value) { m_rawHeaders.insert(headerName, value); }
+    void removeRawHeader(const QByteArray &headerName) { m_rawHeaders.remove(headerName); }
     QList<QByteArray> rawHeaderList() const { return m_rawHeaders.keys(); }
+    // false if the error page of this status was tried for this reply already
+    bool markErrorPageTried(int status)
+    {
+        if (m_triedErrorPages.contains(status))
+            return false;
+        m_triedErrorPages.insert(status);
+        return true;
+    }
     const QList<QNetworkCookie> &cookies() const { return m_cookies; }
     void setCookies(const QList<QNetworkCookie> &cookies) { m_cookies = cookies; }
     // the body is compressed with gzip or deflate when the client accepts it, unless disabled
@@ -134,6 +144,7 @@ private:
     QList<QByteArray> m_acceptEncodings;
     bool m_head = false;
     bool m_closed = false;
+    QSet<int> m_triedErrorPages;
     int m_status = 200;
     bool m_compressionEnabled = true;
     QHash<QByteArray, QByteArray> m_rawHeaders;

@@ -799,13 +799,23 @@ void SilkServer::Private::error(int statusCode, SilkHttpRequest *request, SilkHt
 {
     ssError() << request << statusCode << message;
     QString documentRoot = documentRootForRequest(request->url());
-    if (QFile::exists(QString::fromUtf8("%1/errors/%2.qml").arg(documentRoot).arg(statusCode))) {
-        load(QFileInfo(QString::fromUtf8("%1/errors/%2.qml").arg(documentRoot).arg(statusCode)), request, reply, message, false);
-    } else if (QFile::exists(QString::fromUtf8(":/errors/%2.qml").arg(statusCode))) {
-        load(QFileInfo(QString::fromUtf8(":/errors/%2.qml").arg(statusCode)), request, reply, message, false);
+    QString page;
+    // the page of this status failed for this reply already (e.g. a broken errors/500.qml):
+    // loading it again would fail again, over and over
+    if (reply->markErrorPageTried(statusCode)) {
+        const QString local = QString::fromUtf8("%1/errors/%2.qml").arg(documentRoot).arg(statusCode);
+        const QString builtin = QString::fromUtf8(":/errors/%2.qml").arg(statusCode);
+        if (QFile::exists(local))
+            page = local;
+        else if (QFile::exists(builtin))
+            page = builtin;
+    }
+    if (!page.isEmpty()) {
+        load(QFileInfo(page), request, reply, message, false);
     } else {
-        // an application without silk's error pages; loading a missing page would end in
-        // another error, over and over
+        // no page to use, or an application without silk's error pages; loading a missing page
+        // would end in another error, over and over
+        reply->removeRawHeader("Content-Type"); // of the page that failed; there is no body
         reply->setStatus(statusCode);
         if (statusCode == 301)
             reply->setRawHeader("Location", message.toUtf8());
