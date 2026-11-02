@@ -351,12 +351,11 @@ void QmlHandler::Private::close(SilkAbstractHttpObject *object)
             reply->setRawHeader("Content-Type", object->property("contentType").toByteArray());
         }
 
-        QVariant prolog = object->property("prolog");
-        if (prolog.isValid())
-            reply->write(prolog.toByteArray());
-
 //        qDebug() << out;
         if (request->method() == "GET" || request->method() == "POST") {
+            QVariant prolog = object->property("prolog");
+            if (prolog.isValid())
+                reply->write(prolog.toByteArray());
             reply->write(out.toUtf8());
         }
         reply->close();
