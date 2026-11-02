@@ -218,8 +218,9 @@ void QmlHandler::Private::exec(QQmlComponent *component, SilkHttpRequest *reques
         // TODO: any check?
         break;
     case QQmlComponent::Error:
-        qDebug() << Q_FUNC_INFO << __LINE__ << component->errorString();
-        emit q->error(500, request, reply, component->errorString());
+        // the details are for the log only: they name files of the server
+        qWarning() << Q_FUNC_INFO << __LINE__ << component->errorString();
+        emit q->error(500, request, reply, QStringLiteral("The page could not be loaded."));
         break;
     case QQmlComponent::Loading:
         component2request.insert(component, request);
@@ -276,9 +277,9 @@ void QmlHandler::Private::exec(QQmlComponent *component, SilkHttpRequest *reques
         QObject *o = component->create(context);
         if (!o) {
             // e.g. an unset required property: the component is Ready but creating it fails
-            qDebug() << Q_FUNC_INFO << __LINE__ << component->errors();
+            qWarning() << Q_FUNC_INFO << __LINE__ << component->errors();
             delete context;
-            emit q->error(500, request, reply, component->errorString());
+            emit q->error(500, request, reply, QStringLiteral("The page could not be loaded."));
             return;
         }
         o->setParent(http);

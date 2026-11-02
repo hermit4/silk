@@ -118,6 +118,8 @@ Changes in Qt 6 that affect silk applications
   of 200, so it no longer has to set it. A page that shows its content only when
   http.status is 200 must change that check. An error page that cannot be run is not
   sent as a file: the client gets the status alone.
+- http.message no longer holds the QML or network error text for an error page, as
+  clients could read it. The details are in the log.
 - A WebSocket upgrade must be the first request on its connection, as browsers send it.
 - A rejected WebSocket upgrade (e.g. a missing page) gets an HTTP error response
   instead of a closed connection. WebSocket.close() sends a close frame.

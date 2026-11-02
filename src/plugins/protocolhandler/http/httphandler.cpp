@@ -127,7 +127,9 @@ void HttpHandler::Private::error(QNetworkReply::NetworkError error)
 //    qDebug() << Q_FUNC_INFO << __LINE__ << rep->url() << error;
     SilkHttpRequest *request = requestMap.value(rep);
     SilkHttpReply *reply = replyMap.value(rep);
-    emit q->error(403, request, reply, rep->errorString());
+    // the details are for the log only: they name the upstream server
+    qWarning() << Q_FUNC_INFO << __LINE__ << rep->url() << rep->errorString();
+    emit q->error(403, request, reply, request->url().toString());
 //    qDebug() << Q_FUNC_INFO << __LINE__;
 }
 
