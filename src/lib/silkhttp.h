@@ -138,6 +138,9 @@ public:
 
 signals:
     void statusChanged(int status);
+    // the response was handed to the connection, which may be gone (Qt 6.8 cannot tell);
+    // status() and size() are what was written
+    void answered();
 
 private:
     std::unique_ptr<QHttpServerResponder> m_responder;

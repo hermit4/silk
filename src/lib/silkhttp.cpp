@@ -290,6 +290,7 @@ void SilkHttpReply::close()
         headers.append(QHttpHeaders::WellKnownHeader::SetCookie, QAnyStringView(value.replace('\r', "%0D").replace('\n', "%0A")));
     }
     m_responder->write(m_data, headers, static_cast<QHttpServerResponder::StatusCode>(m_status));
+    emit answered();
     deleteLater();
 }
 
@@ -394,8 +395,10 @@ void SilkWebSocket::accept(const QByteArray &protocol)
     });
     // the handshake failed, e.g. an unsupported version; Qt WebSockets answers and closes
     connect(m_socket, &QTcpSocket::disconnected, this, [this]() {
-        if (!m_webSocket)
+        if (!m_webSocket) {
+            ssError() << this << "the handshake failed";
             deleteLater();
+        }
     });
     server->handleConnection(m_socket);
 }
@@ -425,6 +428,7 @@ static quint64 maxMessageSize()
 
 void SilkWebSocket::handshakeDone()
 {
+    ssOk() << this;
     m_webSocket->setMaxAllowedIncomingMessageSize(maxMessageSize());
     m_webSocket->setMaxAllowedIncomingFrameSize(qMin(maxMessageSize(), QWebSocket::maxIncomingFrameSize()));
     connect(m_webSocket, &QWebSocket::textMessageReceived, this, [this](const QString &message) {

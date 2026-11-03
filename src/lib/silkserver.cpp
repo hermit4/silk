@@ -581,6 +581,14 @@ QString SilkServer::Private::documentRootForRequest(const QUrl &url) const
 void SilkServer::Private::incomingConnection(SilkHttpRequest *request, SilkHttpReply *reply)
 {
     ssRequest() << request;
+    // the one result line of a request: a page may answer long after this function returns,
+    // and its status may be an error
+    connect(reply, &SilkHttpReply::answered, this, [request, reply]() {
+        if (reply->status() >= 200 && reply->status() < 400)
+            ssOk() << request << reply->status() << reply->size();
+        else
+            ssError() << request << reply->status() << reply->size();
+    });
 
     QVariant serverName = SilkConfig::value("server.name");
     if (serverName.isNull()) {
@@ -643,12 +651,10 @@ void SilkServer::Private::incomingConnection(SilkHttpRequest *request, SilkHttpR
             return;
         }
     }
-    ssOk() << request << reply->size();
 }
 
 void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
 {
-    QPointer<SilkWebSocket> guard(socket);
     ssRequest() << socket;
 
     QString str = socket->url().toString();
@@ -703,9 +709,6 @@ void SilkServer::Private::incomingConnection(SilkWebSocket *socket)
             return;
         }
     }
-    // gone if the client disconnected while the page was loaded (it processes events)
-    if (guard)
-        ssOk() << socket;
 }
 
 void SilkServer::Private::load(const QFileInfo &fileInfo, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message, int errorStatus)
@@ -800,7 +803,7 @@ void SilkServer::Private::loadUrl(const QUrl &url, SilkHttpRequest *request, Sil
 
 void SilkServer::Private::error(int statusCode, SilkHttpRequest *request, SilkHttpReply *reply, const QString &message)
 {
-    ssError() << request << statusCode << message;
+    ssInfo() << request << statusCode << message; // the result line follows when it is answered
     QString documentRoot = documentRootForRequest(request->url());
     QString page;
     // the page of this status failed for this reply already (e.g. a broken errors/500.qml):
